@@ -1,0 +1,27 @@
+Analyzing lib...                                                
+
+warning - Unused import: 'pages/login_page.dart' - lib\main.dart:4:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\alerts_page.dart:56:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\alerts_page.dart:56:149 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\history_page.dart:51:42 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\pages\home_page.dart:165:19 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\home_page.dart:175:81 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\home_page.dart:175:114 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\home_page.dart:219:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\paywall_page.dart:37:69 - deprecated_member_use
+warning - The value of the local variable 'title' isn't used - lib\pages\result_page.dart:30:11 - unused_local_variable
+   info - 'Share' is deprecated and shouldn't be used. Use SharePlus instead - lib\pages\result_page.dart:43:5 - deprecated_member_use
+   info - 'share' is deprecated and shouldn't be used. Use SharePlus.instance.share() instead - lib\pages\result_page.dart:43:11 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\result_page.dart:89:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\result_page.dart:99:167 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\pages\result_page.dart:134:60 - deprecated_member_use
+warning - Unused import: 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart' - lib\services\gmail_service.dart:4:8 - unused_import
+  error - The class 'gsign.GoogleSignIn' doesn't have an unnamed constructor - lib\services\gmail_service.dart:13:44 - new_with_undefined_constructor_default
+  error - The method 'signIn' isn't defined for the type 'GoogleSignIn' - lib\services\gmail_service.dart:23:43 - undefined_method
+   info - Don't invoke 'print' in production code - lib\services\gmail_service.dart:26:7 - avoid_print
+  error - The method 'signInSilently' isn't defined for the type 'GoogleSignIn' - lib\services\gmail_service.dart:32:41 - undefined_method
+  error - The method 'signIn' isn't defined for the type 'GoogleSignIn' - lib\services\gmail_service.dart:32:81 - undefined_method
+   info - Don't invoke 'print' in production code - lib\services\gmail_service.dart:58:11 - avoid_print
+   info - Don't use 'BuildContext's across async gaps - lib\services\share_extension_handler.dart:19:23 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\services\share_extension_handler.dart:28:23 - use_build_context_synchronously
+
