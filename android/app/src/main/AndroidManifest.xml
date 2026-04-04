@@ -4,7 +4,7 @@
     <!-- Required for Google Play Billing (RevenueCat) -->
     <uses-permission android:name="com.android.vending.BILLING" />
     <application
-        android:label="antigolpeia"
+        android:label="AntiGolpeia"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

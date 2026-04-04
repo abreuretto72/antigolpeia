@@ -1,0 +1,19 @@
+# ── Keystore de produção — AntiGolpeia ────────────────────────────────────────
+#
+# 1. Copie este arquivo para android/key.properties  (sem o .example)
+# 2. Preencha com os dados do seu keystore
+# 3. NUNCA commite o key.properties — ele já está no .gitignore
+#
+# Como gerar o keystore (rodar UMA VEZ, guardar o arquivo em local seguro):
+#
+#   keytool -genkey -v \
+#     -keystore android/app/antigolpeia.keystore \
+#     -alias antigolpeia \
+#     -keyalg RSA -keysize 2048 -validity 10000
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+storePassword=SUA_SENHA_DO_KEYSTORE
+keyPassword=SUA_SENHA_DA_CHAVE
+keyAlias=antigolpeia
+storeFile=app/antigolpeia.keystore

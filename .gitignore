@@ -48,3 +48,8 @@ app.*.map.json
 .env
 .env.*
 .claude/
+
+# Keystore de produção — NUNCA commitar
+android/key.properties
+android/app/*.keystore
+android/app/*.jks
