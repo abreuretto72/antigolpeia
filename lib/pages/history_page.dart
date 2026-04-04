@@ -52,7 +52,16 @@ class _HistoryPageState extends State<HistoryPage> {
             );
           }
           if (snapshot.hasError) {
-            return const Center(child: Text('Erro ao carregar histórico.'));
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'Ops! Não conseguimos carregar o histórico agora.\nVerifique sua conexão e tente novamente.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+            );
           }
 
           final raw = snapshot.data;
@@ -73,7 +82,7 @@ class _HistoryPageState extends State<HistoryPage> {
             children: [
               Expanded(
                 child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 80),
                   itemCount: data.length,
                   separatorBuilder: (_, __) =>
                       const Divider(height: 1, indent: 72),

@@ -154,7 +154,8 @@ class _InfoRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(value,
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600)),
+                      fontSize: 14, fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis),
             ],
           ),
         ),

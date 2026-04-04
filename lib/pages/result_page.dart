@@ -184,6 +184,7 @@ https://confereantes.app/download
       appBar: AppBar(title: const Text('Relatório de Risco')),
       body: SafeArea(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 32),
           child: Column(
             children: [
             Container(
@@ -251,7 +252,9 @@ https://confereantes.app/download
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Text('Toque para saber mais', style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w600)),
+                              Expanded(
+                                child: Text('Toque para saber mais', style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                              ),
                               const SizedBox(width: 4),
                               Icon(Icons.info_outline, size: 16, color: color),
                             ],

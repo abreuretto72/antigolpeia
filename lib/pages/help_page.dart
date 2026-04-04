@@ -10,7 +10,7 @@ class HelpPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Ajuda')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
         children: const [
           _IntroCard(),
           SizedBox(height: 16),

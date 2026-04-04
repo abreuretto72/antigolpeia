@@ -61,7 +61,7 @@ class _DashboardViewState extends State<DashboardView> {
   Widget _buildContent(DashboardStats stats) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

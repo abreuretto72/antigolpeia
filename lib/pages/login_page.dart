@@ -61,12 +61,13 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('CONFERE ANTES', style: TextStyle(fontWeight: FontWeight.bold))),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: 40),
             const Icon(Icons.security, size: 80, color: Colors.blueAccent),
             const SizedBox(height: 24),
             const Text(

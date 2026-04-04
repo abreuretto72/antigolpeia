@@ -375,7 +375,7 @@ class _HomePageState extends State<HomePage> {
 
       // ── Body ───────────────────────────────────────────────────────────────
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 48.0),
+        padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 80.0),
         child: Column(
           children: [
             // Banner de alerta
