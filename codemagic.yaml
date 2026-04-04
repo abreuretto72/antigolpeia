@@ -1,0 +1,89 @@
+workflows:
+  ios-testflight:
+    name: iOS — TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+      # ── Certificado e Provisioning Profile ──────────────────────────────────
+      # Configure estas variáveis em:
+      # Codemagic → seu app → Environment variables
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.multiversodigital.antigolpeia
+
+      vars:
+        BUNDLE_ID: com.multiversodigital.antigolpeia
+        APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
+        APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
+
+    triggering:
+      events:
+        - push
+      branch_pattern:
+        pattern: master
+        include: true
+
+    scripts:
+      - name: Instalar dependências Flutter
+        script: flutter pub get
+
+      - name: Instalar pods iOS
+        script: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Build iOS (release)
+        script: |
+          flutter build ipa \
+            --export-options-plist=/Users/builder/export_options.plist
+
+      - name: Gerar Export Options
+        script: |
+          cat > /Users/builder/export_options.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>bundleID</key>
+            <string>com.multiversodigital.antigolpeia</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+    publishing:
+      app_store_connect:
+        # Envia automaticamente ao TestFlight após build
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        beta_groups:
+          - Testadores Internos
+
+      email:
+        recipients:
+          - contato@multiversodigital.com.br
+        notify:
+          success: true
+          failure: true
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
