@@ -18,6 +18,7 @@ import 'privacy_policy_page.dart';
 import 'terms_of_use_page.dart';
 import 'about_page.dart';
 import 'account_page.dart';
+import 'help_page.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 
@@ -337,6 +338,14 @@ class _HomePageState extends State<HomePage> {
             label: 'Termos de Uso',
             color: Colors.white38,
             onTap: () => _navigate(const TermsOfUsePage()),
+          ),
+
+          // Ajuda
+          _DrawerItem(
+            icon: Icons.help_outline,
+            label: 'Ajuda',
+            color: Colors.white38,
+            onTap: () => _navigate(const HelpPage()),
           ),
 
           // Sobre
