@@ -9,18 +9,21 @@ workflows:
       xcode: latest
       cocoapods: default
 
-      # ── Certificado e Provisioning Profile ──────────────────────────────────
-      # Configure estas variáveis em:
-      # Codemagic → seu app → Environment variables
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.multiversodigital.antigolpeia
 
+      # ── Variáveis de ambiente ────────────────────────────────────────────────
+      # Configure todas em: Codemagic → seu app → Environment variables
       vars:
         BUNDLE_ID: com.multiversodigital.antigolpeia
         APP_STORE_CONNECT_ISSUER_ID: $APP_STORE_CONNECT_ISSUER_ID
         APP_STORE_CONNECT_KEY_IDENTIFIER: $APP_STORE_CONNECT_KEY_IDENTIFIER
         APP_STORE_CONNECT_PRIVATE_KEY: $APP_STORE_CONNECT_PRIVATE_KEY
+        # Credenciais do app (usadas para gerar o .env no build)
+        SUPABASE_URL: $SUPABASE_URL
+        SUPABASE_ANON_KEY: $SUPABASE_ANON_KEY
+        REVENUE_API_KEY: $REVENUE_API_KEY
 
     triggering:
       events:
@@ -30,19 +33,20 @@ workflows:
         include: true
 
     scripts:
+      - name: Gerar arquivo .env
+        script: |
+          cat > .env << EOF
+          EXPO_PUBLIC_SUPABASE_URL=$SUPABASE_URL
+          EXPO_PUBLIC_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
+          REVENUE_API_KEY=$REVENUE_API_KEY
+          EOF
+
       - name: Instalar dependências Flutter
         script: flutter pub get
 
       - name: Instalar pods iOS
         script: |
-          cd ios
-          pod install
-          cd ..
-
-      - name: Build iOS (release)
-        script: |
-          flutter build ipa \
-            --export-options-plist=/Users/builder/export_options.plist
+          cd ios && pod install && cd ..
 
       - name: Gerar Export Options
         script: |
@@ -67,9 +71,13 @@ workflows:
           </plist>
           EOF
 
+      - name: Build iOS (release)
+        script: |
+          flutter build ipa \
+            --export-options-plist=/Users/builder/export_options.plist
+
     publishing:
       app_store_connect:
-        # Envia automaticamente ao TestFlight após build
         api_key: $APP_STORE_CONNECT_PRIVATE_KEY
         key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
         issuer_id: $APP_STORE_CONNECT_ISSUER_ID
