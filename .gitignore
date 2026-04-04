@@ -44,9 +44,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Environment secrets
-.env
-.env.*
+# Environment secrets — .env.local e .env.* ignorados, mas .env base é commitado (sem segredos)
+.env.local
+.env.*.local
+.env.production
 .claude/
 
 # Keystore de produção — NUNCA commitar
