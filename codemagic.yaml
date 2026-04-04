@@ -44,6 +44,17 @@ workflows:
       - name: Instalar dependências Flutter
         script: flutter pub get
 
+      - name: Ajustar iOS deployment target para 14.0
+        script: |
+          # Atualiza o Podfile gerado pelo Flutter
+          sed -i '' "s/platform :ios, '[0-9.]*/platform :ios, '14.0/" ios/Podfile
+          # Garante que a linha existe mesmo se não estava no Podfile
+          if ! grep -q "platform :ios" ios/Podfile; then
+            sed -i '' '1s/^/platform :ios, '"'"'14.0'"'"'\n/' ios/Podfile
+          fi
+          # Atualiza o IPHONEOS_DEPLOYMENT_TARGET no projeto Xcode
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*/IPHONEOS_DEPLOYMENT_TARGET = 14.0/g' ios/Runner.xcodeproj/project.pbxproj
+
       - name: Instalar pods iOS
         script: |
           cd ios && pod install && cd ..
