@@ -164,7 +164,9 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
               valueListenable:
                   Hive.box<AppSettings>('app_settings').listenable(),
               builder: (context, box, _) {
-                final settings = AppSettings.current;
+                final settings = box.isEmpty
+                    ? AppSettings()
+                    : (box.getAt(0) ?? AppSettings());
                 return Column(
                   children: [
                     _ToggleTile(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
@@ -5,7 +6,6 @@ import 'package:notification_listener_service/notification_event.dart';
 import 'api_service.dart';
 import '../main.dart';
 import '../pages/result_page.dart';
-import '../pages/history_page.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -14,6 +14,7 @@ class NotificationService {
 
   final _apiService = ApiService();
   bool _isListening = false;
+  StreamSubscription? _notifSubscription;
 
   // Deduplicação por notificationId
   final Set<String> _seenIds = {};
@@ -32,8 +33,18 @@ class NotificationService {
     if (!status) return;
     if (_isListening) return;
 
-    NotificationListenerService.notificationsStream.listen(_processNotification);
+    _notifSubscription = NotificationListenerService.notificationsStream.listen(
+      _processNotification,
+      onError: (e) => debugPrint('[NotificationService] Stream error: $e'),
+      cancelOnError: false,
+    );
     _isListening = true;
+  }
+
+  void dispose() {
+    _notifSubscription?.cancel();
+    _notifSubscription = null;
+    _isListening = false;
   }
 
   Future<void> requestPermission() async {
@@ -94,27 +105,30 @@ class NotificationService {
 
   void _handleHighRiskResult(Map<String, dynamic> result) {
     final context = navigatorKey.currentContext;
-    if (context == null) return;
+    if (context == null || !context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('⚠️ ALERTA: ${result['tipo_golpe'] ?? 'Golpe detectado'}'),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 8),
-        action: SnackBarAction(
-          label: 'VER',
-          textColor: Colors.white,
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ResultPage(result: result)),
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⚠️ ALERTA: ${result['tipo_golpe'] ?? 'Golpe detectado'}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: 'VER',
+            textColor: Colors.white,
+            onPressed: () {
+              final ctx = navigatorKey.currentContext;
+              if (ctx == null || !ctx.mounted) return;
+              Navigator.push(
+                ctx,
+                MaterialPageRoute(builder: (_) => ResultPage(result: result)),
+              );
+            },
           ),
         ),
-      ),
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const HistoryPage()),
-    );
+      );
+    } catch (e) {
+      debugPrint('[NOTIF] Erro ao exibir alerta: $e');
+    }
   }
 }

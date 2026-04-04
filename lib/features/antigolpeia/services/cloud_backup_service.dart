@@ -81,21 +81,35 @@ class CloudBackupService {
       final bBox = Hive.box<BlacklistItem>('antigolpeia_blacklist');
 
       await wBox.clear();
-      for (final item in (row['whitelist'] as List)) {
-        await wBox.add(WhitelistItem(
-          phoneNumber: item['num'] as String,
-          name: item['name'] as String,
-          addedAt: DateTime.now(),
-        ));
+      final rawWhitelist = row['whitelist'];
+      if (rawWhitelist is List) {
+        for (final item in rawWhitelist) {
+          if (item is! Map) continue;
+          final phone = item['num']?.toString() ?? '';
+          final name = item['name']?.toString() ?? '';
+          if (phone.isEmpty) continue;
+          await wBox.add(WhitelistItem(
+            phoneNumber: phone,
+            name: name,
+            addedAt: DateTime.now(),
+          ));
+        }
       }
 
       await bBox.clear();
-      for (final item in (row['blacklist'] as List)) {
-        await bBox.add(BlacklistItem(
-          phoneNumber: item['num'] as String,
-          reason: item['reason'] as String,
-          blockedAt: DateTime.now(),
-        ));
+      final rawBlacklist = row['blacklist'];
+      if (rawBlacklist is List) {
+        for (final item in rawBlacklist) {
+          if (item is! Map) continue;
+          final phone = item['num']?.toString() ?? '';
+          final reason = item['reason']?.toString() ?? '';
+          if (phone.isEmpty) continue;
+          await bBox.add(BlacklistItem(
+            phoneNumber: phone,
+            reason: reason,
+            blockedAt: DateTime.now(),
+          ));
+        }
       }
 
       debugPrint('[Backup] Restauração concluída. W:${wBox.length} B:${bBox.length}');

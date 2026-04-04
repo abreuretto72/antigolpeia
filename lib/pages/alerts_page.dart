@@ -21,6 +21,18 @@ class _AlertsPageState extends State<AlertsPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
+          if (snapshot.hasError) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'Não foi possível carregar os alertas.\nTente novamente mais tarde.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+            );
+          }
           final data = snapshot.data;
           
           return ListView(

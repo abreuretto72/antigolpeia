@@ -13,6 +13,11 @@ class ResultPage extends StatefulWidget {
 }
 
 class _ResultPageState extends State<ResultPage> {
+  static List<String> _safeStringList(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw.whereType<String>().toList();
+  }
+
   Color _getColorFromClassificacao(String classificacao) {
     if (classificacao.toLowerCase() == 'seguro') return Colors.green;
     if (classificacao.toLowerCase() == 'suspeito') return Colors.orange;
@@ -48,9 +53,7 @@ https://confereantes.app/download
     final explicacao = widget.result['explicacao']?.toString();
     final acaoImediata = widget.result['acao_imediata']?.toString();
     final nivelUrgencia = widget.result['nivel_urgencia']?.toString();
-    final sinais = widget.result['sinais_alerta'] != null
-        ? List<String>.from(widget.result['sinais_alerta'])
-        : <String>[];
+    final sinais = _safeStringList(widget.result['sinais_alerta']);
 
     showModalBottomSheet(
       context: context,
@@ -140,11 +143,14 @@ https://confereantes.app/download
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.result['risco'] > 70) _showViralLoopModal();
+      if (!mounted) return;
+      final risk = (widget.result['risco'] as num?)?.toInt() ?? 0;
+      if (risk > 70) _showViralLoopModal();
     });
   }
 
   void _showViralLoopModal() {
+    if (!mounted) return;
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -152,14 +158,17 @@ https://confereantes.app/download
         title: const Text('⚠️ Ajude a prevenir!'),
         content: const Text('Você pode salvar alguém da sua família ou amigos de cair nesse mesmo golpe avisando-os agora.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Depois')),
+          TextButton(
+            onPressed: () { if (ctx.mounted) Navigator.pop(ctx); },
+            child: const Text('Depois'),
+          ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
               _share();
             },
             child: const Text('📤 Compartilhar Alerta'),
-          )
+          ),
         ],
       ),
     );
@@ -225,7 +234,7 @@ https://confereantes.app/download
                   _buildSection('O que é isso', widget.result['explicacao']),
                   const SizedBox(height: 16),
                   if (widget.result['sinais_alerta'] != null)
-                     _buildListSection('Sinais de Alerta', List<String>.from(widget.result['sinais_alerta'])),
+                     _buildListSection('Sinais de Alerta', _safeStringList(widget.result['sinais_alerta'])),
                   const SizedBox(height: 16),
                   InkWell(
                     borderRadius: BorderRadius.circular(12),

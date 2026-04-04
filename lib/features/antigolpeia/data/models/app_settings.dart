@@ -13,12 +13,11 @@ class AppSettings extends HiveObject {
 
   static AppSettings get current {
     final box = Hive.box<AppSettings>('app_settings');
-    if (box.isEmpty) {
-      final defaults = AppSettings();
-      box.add(defaults);
-      return defaults;
-    }
-    return box.getAt(0)!;
+    final existing = box.isEmpty ? null : box.getAt(0);
+    if (existing != null) return existing;
+    final defaults = AppSettings();
+    box.add(defaults);
+    return defaults;
   }
 }
 

@@ -11,20 +11,25 @@ import 'api_service.dart';
 // DEVE reinicializar todas as dependências — o isolate não compartilha estado.
 @pragma('vm:entry-point')
 void _onBackgroundSms(SmsMessage message) async {
-  // 1. Inicializar Flutter bindings no isolate
-  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    // 1. Inicializar Flutter bindings no isolate
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Carregar .env
-  await dotenv.load(fileName: '.env');
+    // 2. Carregar .env
+    await dotenv.load(fileName: '.env');
 
-  // 3. Inicializar Supabase
-  await Supabase.initialize(
-    url: dotenv.env['EXPO_PUBLIC_SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'] ?? '',
-  );
+    // 3. Inicializar Supabase (idempotente — seguro chamar múltiplas vezes)
+    await Supabase.initialize(
+      url: dotenv.env['EXPO_PUBLIC_SUPABASE_URL'] ?? '',
+      anonKey: dotenv.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'] ?? '',
+    );
 
-  // 4. Processar sem alertas visuais (sem contexto de UI no background)
-  await SmsMonitorService()._processBackground(message);
+    // 4. Processar sem alertas visuais (sem contexto de UI no background)
+    await SmsMonitorService()._processBackground(message);
+  } catch (e) {
+    // Não propaga — isolate de background não deve quebrar a app principal
+    debugPrint('[SmsMonitor:background] Erro não tratado: $e');
+  }
 }
 
 // Short codes oficiais de bancos brasileiros (whitelist local)
@@ -157,23 +162,31 @@ class SmsMonitorService {
 
   void _showAlert(Map<String, dynamic> result) {
     final ctx = navigatorKey.currentContext;
-    if (ctx == null) return;
+    if (ctx == null || !ctx.mounted) return;
 
-    ScaffoldMessenger.of(ctx).showSnackBar(
-      SnackBar(
-        content: Text(
-            '📱 SMS SUSPEITO: ${result['tipo_golpe'] ?? 'Golpe detectado'}'),
-        backgroundColor: Colors.red.shade800,
-        duration: const Duration(seconds: 8),
-        action: SnackBarAction(
-          label: 'VER',
-          textColor: Colors.white,
-          onPressed: () => Navigator.push(
-            ctx,
-            MaterialPageRoute(builder: (_) => ResultPage(result: result)),
+    try {
+      ScaffoldMessenger.of(ctx).showSnackBar(
+        SnackBar(
+          content: Text(
+              '📱 SMS SUSPEITO: ${result['tipo_golpe'] ?? 'Golpe detectado'}'),
+          backgroundColor: Colors.red.shade800,
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: 'VER',
+            textColor: Colors.white,
+            onPressed: () {
+              final navCtx = navigatorKey.currentContext;
+              if (navCtx == null || !navCtx.mounted) return;
+              Navigator.push(
+                navCtx,
+                MaterialPageRoute(builder: (_) => ResultPage(result: result)),
+              );
+            },
           ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint('[SmsMonitor] Erro ao exibir alerta: $e');
+    }
   }
 }

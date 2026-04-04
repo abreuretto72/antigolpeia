@@ -86,6 +86,7 @@ class _AuthGateState extends State<AuthGate> {
     super.initState();
     _checkAuth();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ShareExtensionHandler().initTextSharing(context);
     });
   }
