@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
+    <!-- Required for Google Play Billing (RevenueCat) -->
+    <uses-permission android:name="com.android.vending.BILLING" />
     <application
         android:label="antigolpeia"
         android:name="${applicationName}"

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:notification_listener_service/notification_event.dart';
@@ -14,7 +15,7 @@ class NotificationService {
   final _apiService = ApiService();
   bool _isListening = false;
 
-  // Deduplicação por notificationId: evita analisar update/remove do mesmo evento
+  // Deduplicação por notificationId
   final Set<String> _seenIds = {};
 
   bool _isDuplicate(String pkg, int? notifId) {
@@ -22,26 +23,17 @@ class NotificationService {
     final key = '$pkg:$notifId';
     if (_seenIds.contains(key)) return true;
     _seenIds.add(key);
-    // Evita crescimento ilimitado — mantém só os últimos 200
     if (_seenIds.length > 200) _seenIds.clear();
     return false;
   }
 
   Future<void> init() async {
     final bool status = await NotificationListenerService.isPermissionGranted();
-    if (!status) {
-      debugPrint("Permissão para NotificationListener não concedida.");
-      return;
-    }
-
+    if (!status) return;
     if (_isListening) return;
 
-    NotificationListenerService.notificationsStream.listen((ServiceNotificationEvent event) {
-      _processNotification(event);
-    });
-    
+    NotificationListenerService.notificationsStream.listen(_processNotification);
     _isListening = true;
-    debugPrint("NotificationListener iniciado.");
   }
 
   Future<void> requestPermission() async {
@@ -57,49 +49,42 @@ class NotificationService {
     final String? content = event.content;
     final String? title = event.title;
 
-    debugPrint('[NOTIF] pkg=$packageName id=${event.id} content=$content');
-
-    if (packageName == null || content == null) {
-      debugPrint('[NOTIF] Ignorado: packageName ou content nulo');
-      return;
-    }
+    if (packageName == null || content == null) return;
 
     final isWhatsApp = packageName.contains('com.whatsapp');
     final isGmail = packageName.contains('com.google.android.gm');
 
-    if (!isWhatsApp && !isGmail) {
-      debugPrint('[NOTIF] Ignorado: app não monitorado ($packageName)');
-      return;
+    if (!isWhatsApp && !isGmail) return;
+    if (content.length <= 5) return;
+    if (_isDuplicate(packageName, event.id)) return;
+
+    // Log apenas em debug — nunca expõe conteúdo em release
+    if (kDebugMode) {
+      debugPrint('[NOTIF] pkg=$packageName analisando (${content.length} chars)');
     }
 
-    if (content.length <= 5) {
-      debugPrint('[NOTIF] Ignorado: conteúdo muito curto (${content.length} chars)');
-      return;
-    }
-
-    if (_isDuplicate(packageName, event.id)) {
-      debugPrint('[NOTIF] Ignorado: duplicata pkg=$packageName id=${event.id}');
-      return;
-    }
-
-    debugPrint('[NOTIF] Analisando: $content');
-    _analyzeInBackground(content, title ?? "Mensagem", isWhatsApp ? 'whatsapp' : 'email', title);
+    _analyzeInBackground(
+      content,
+      isWhatsApp ? 'whatsapp' : 'email',
+      title,
+    );
   }
 
-  Future<void> _analyzeInBackground(String content, String title, String inputType, String? sender) async {
+  Future<void> _analyzeInBackground(
+    String content,
+    String inputType,
+    String? sender,
+  ) async {
     try {
-      debugPrint('[NOTIF] Chamando API... inputType=$inputType');
       final raw = await _apiService.analyzeContent(inputType, content);
-      debugPrint('[NOTIF] API respondeu: risco=${raw['risco']}');
 
-      // Injeta metadados para exibição na ResultPage
-      final result = Map<String, dynamic>.from(raw);
-      result['_content'] = content;
-      result['_input_type'] = inputType;
-      result['_sender'] = sender;
-      result['_created_at'] = DateTime.now().toIso8601String();
+      final result = Map<String, dynamic>.from(raw)
+        ..['_content'] = content
+        ..['_input_type'] = inputType
+        ..['_sender'] = sender
+        ..['_created_at'] = DateTime.now().toIso8601String();
 
-      if (result['risco'] > 50) {
+      if ((result['risco'] as num? ?? 0) > 50) {
         _handleHighRiskResult(result);
       }
     } catch (e) {
@@ -113,23 +98,20 @@ class NotificationService {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("⚠️ ALERTA DE GOLPE: ${result['tipo_golpe']}"),
+        content: Text('⚠️ ALERTA: ${result['tipo_golpe'] ?? 'Golpe detectado'}'),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 8),
         action: SnackBarAction(
-          label: "VER",
+          label: 'VER',
           textColor: Colors.white,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => ResultPage(result: result)),
-            );
-          },
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => ResultPage(result: result)),
+          ),
         ),
       ),
     );
 
-    // Abre o histórico para o usuário ver todas as ameaças detectadas
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const HistoryPage()),

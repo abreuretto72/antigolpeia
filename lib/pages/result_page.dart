@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import '../features/antigolpeia/presentation/widgets/report_authority_card.dart';
 import 'paywall_page.dart';
 
 class ResultPage extends StatefulWidget {
@@ -40,6 +41,99 @@ Vale muito a pena usar. Analise antes de fazer PIX:
 https://confereantes.app/download
 ''';
     SharePlus.instance.share(ShareParams(text: text));
+  }
+
+  void _showDetailsBottomSheet(BuildContext context, Color color) {
+    final tipoGolpe = widget.result['tipo_golpe']?.toString();
+    final explicacao = widget.result['explicacao']?.toString();
+    final acaoImediata = widget.result['acao_imediata']?.toString();
+    final nivelUrgencia = widget.result['nivel_urgencia']?.toString();
+    final sinais = widget.result['sinais_alerta'] != null
+        ? List<String>.from(widget.result['sinais_alerta'])
+        : <String>[];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.92,
+        builder: (_, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(color: Colors.grey.shade600, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              Text('Detalhes da Análise', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
+              const SizedBox(height: 20),
+              if (tipoGolpe != null && tipoGolpe != 'N/A') ...[
+                _buildDetailRow(Icons.category_outlined, 'Tipo', tipoGolpe, color),
+                const SizedBox(height: 16),
+              ],
+              if (nivelUrgencia != null) ...[
+                _buildDetailRow(Icons.warning_amber_outlined, 'Urgência', nivelUrgencia.toUpperCase(), color),
+                const SizedBox(height: 16),
+              ],
+              if (explicacao != null) ...[
+                const Text('O QUE É ISSO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                const SizedBox(height: 6),
+                Text(explicacao, style: const TextStyle(fontSize: 16, height: 1.5)),
+                const SizedBox(height: 16),
+              ],
+              if (sinais.isNotEmpty) ...[
+                const Text('SINAIS DE ALERTA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                const SizedBox(height: 6),
+                ...sinais.map((s) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('• ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Expanded(child: Text(s, style: const TextStyle(fontSize: 15, height: 1.4))),
+                  ]),
+                )),
+                const SizedBox(height: 16),
+              ],
+              if (acaoImediata != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('AÇÃO IMEDIATA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                      const SizedBox(height: 6),
+                      Text(acaoImediata, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.4)),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value, Color color) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 8),
+        Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        Expanded(child: Text(value, style: const TextStyle(fontSize: 15))),
+      ],
+    );
   }
 
   @override
@@ -133,20 +227,41 @@ https://confereantes.app/download
                   if (widget.result['sinais_alerta'] != null)
                      _buildListSection('Sinais de Alerta', List<String>.from(widget.result['sinais_alerta'])),
                   const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: color.withValues(alpha:0.15), border: Border.all(color: color, width: 2), borderRadius: BorderRadius.circular(12)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('O QUE FAZER AGORA', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                        const SizedBox(height: 8),
-                        Text(widget.result['acao_imediata'] ?? 'Bloqueie', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                      ],
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => _showDetailsBottomSheet(context, color),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: color.withValues(alpha:0.15), border: Border.all(color: color, width: 2), borderRadius: BorderRadius.circular(12)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('O QUE FAZER AGORA', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                          const SizedBox(height: 8),
+                          Text(widget.result['acao_imediata'] ?? 'Bloqueie', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text('Toque para saber mais', style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w600)),
+                              const SizedBox(width: 4),
+                              Icon(Icons.info_outline, size: 16, color: color),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  if (risk > 60) ...[
+                    ReportAuthorityCard(
+                      rawPhone: widget.result['_sender']?.toString() ?? '',
+                      rawMessage: widget.result['_content']?.toString() ?? '',
+                      ipqsScore: risk,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  const SizedBox(height: 8),
                   const Text('Milhares de pessoas perdem dinheiro todos os dias com golpes como esse.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Colors.grey, fontStyle: FontStyle.italic)),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(

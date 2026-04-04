@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — AntiGolpeia</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      line-height: 1.7;
+      padding: 24px 16px 64px;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    header { margin-bottom: 40px; }
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    header p { font-size: 0.85rem; color: #777; }
+    h2 {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 32px 0 10px;
+      padding-left: 10px;
+      border-left: 3px solid #4caf50;
+    }
+    p { font-size: 0.95rem; color: #bbb; margin-bottom: 12px; }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    li { font-size: 0.95rem; color: #bbb; margin-bottom: 6px; }
+    a { color: #4caf50; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    footer {
+      margin-top: 56px;
+      padding-top: 24px;
+      border-top: 1px solid #222;
+      font-size: 0.8rem;
+      color: #555;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Política de Privacidade — AntiGolpeia</h1>
+      <p>Última atualização: abril de 2026</p>
+    </header>
+
+    <p>
+      A Multiverso Digital ("nós") desenvolveu o AntiGolpeia com o compromisso de proteger
+      sua privacidade e estar em conformidade com a Lei Geral de Proteção de Dados
+      (LGPD — Lei nº 13.709/2018). Esta política explica quais dados coletamos, como os
+      usamos e quais são seus direitos.
+    </p>
+
+    <h2>1. Dados Coletados</h2>
+    <ul>
+      <li>
+        <strong>Conteúdo analisado:</strong> mensagens de texto coladas manualmente ou
+        recebidas via monitor automático (WhatsApp, SMS, Gmail) são enviadas ao servidor
+        para análise de risco. Antes do envio, todos os dados pessoais identificáveis
+        (CPF, telefone, nome, e-mail) são substituídos por marcadores genéricos
+        (técnica de anonimização de PII).
+      </li>
+      <li>
+        <strong>Conta anônima:</strong> ao iniciar o app pela primeira vez, criamos
+        automaticamente uma conta anônima no Supabase para salvar seu histórico e backup.
+        Nenhum dado pessoal é exigido.
+      </li>
+      <li>
+        <strong>Whitelist e Blacklist:</strong> os números que você adiciona como
+        confiáveis ou bloqueados ficam armazenados localmente no dispositivo (Hive) e,
+        se você ativar o backup, são cifrados e armazenados na nuvem vinculados ao seu
+        ID anônimo.
+      </li>
+      <li>
+        <strong>Estatísticas de uso:</strong> coletamos de forma agregada e não
+        identificável o número de análises realizadas, classificação de risco e canal de
+        origem (SMS, WhatsApp etc.) para melhorar a base comunitária de padrões de fraude.
+      </li>
+    </ul>
+
+    <h2>2. Finalidade do Tratamento</h2>
+    <ul>
+      <li>Analisar mensagens suspeitas e exibir relatório de risco ao usuário.</li>
+      <li>Manter e aprimorar o banco comunitário de padrões de golpes.</li>
+      <li>Sincronizar backup criptografado de listas de contatos na nuvem.</li>
+      <li>Enviar denúncias às autoridades competentes quando solicitado pelo usuário.</li>
+      <li>Cumprir obrigações legais.</li>
+    </ul>
+
+    <h2>3. Compartilhamento de Dados</h2>
+    <p>
+      Não vendemos nem alugamos seus dados a terceiros. O conteúdo anonimizado das
+      análises pode ser compartilhado de forma agregada com:
+    </p>
+    <ul>
+      <li>
+        <strong>Supabase</strong> — infraestrutura de banco de dados e autenticação
+        (EUA, com cláusulas contratuais padrão de adequação à LGPD).
+      </li>
+      <li>
+        <strong>Anthropic</strong> — processamento de linguagem natural para análise
+        de risco (os textos enviados são anonimizados antes da transmissão).
+      </li>
+      <li>
+        <strong>Autoridades públicas</strong>, quando o próprio usuário acionar a função
+        "Denunciar às Autoridades".
+      </li>
+    </ul>
+
+    <h2>4. Retenção de Dados</h2>
+    <ul>
+      <li>
+        <strong>Histórico de análises:</strong> mantido indefinidamente vinculado à
+        conta anônima, podendo ser excluído a qualquer momento pelo usuário.
+      </li>
+      <li>
+        <strong>Backup na nuvem:</strong> excluído imediatamente quando a conta é removida.
+      </li>
+      <li>
+        <strong>Padrões de fraude anonimizados</strong> contribuídos à base comunitária:
+        retidos por prazo indeterminado para fins de segurança pública
+        (LGPD art. 16 — dados anonimizados não são dados pessoais).
+      </li>
+    </ul>
+
+    <h2>5. Seus Direitos (LGPD art. 18)</h2>
+    <p>Você pode, a qualquer momento:</p>
+    <ul>
+      <li>Confirmar a existência de tratamento de seus dados.</li>
+      <li>Acessar, corrigir ou portar seus dados.</li>
+      <li>Solicitar a anonimização, bloqueio ou eliminação de dados desnecessários.</li>
+      <li>Revogar o consentimento.</li>
+      <li>Solicitar a exclusão completa da conta (disponível em Menu → Minha Conta).</li>
+    </ul>
+    <p>
+      Para exercer seus direitos, envie e-mail para:
+      <a href="mailto:contato@multiversodigital.com.br">contato@multiversodigital.com.br</a>
+    </p>
+
+    <h2>6. Segurança</h2>
+    <ul>
+      <li>Comunicação exclusivamente via HTTPS/TLS.</li>
+      <li>Anonimização de PII antes de qualquer transmissão externa.</li>
+      <li>
+        Row Level Security (RLS) no banco de dados: cada usuário acessa exclusivamente
+        seus próprios dados.
+      </li>
+      <li>Armazenamento local criptografado via Hive.</li>
+    </ul>
+
+    <h2>7. Dados de Menores</h2>
+    <p>
+      O AntiGolpeia não é direcionado a menores de 18 anos. Não coletamos intencionalmente
+      dados de crianças ou adolescentes. Caso identifiquemos que dados de menores foram
+      coletados inadvertidamente, procederemos à exclusão imediata.
+    </p>
+
+    <h2>8. Alterações nesta Política</h2>
+    <p>
+      Podemos atualizar esta Política periodicamente. Notificaremos você por meio de
+      aviso no próprio aplicativo. O uso continuado após a notificação implica aceite
+      das alterações.
+    </p>
+
+    <h2>9. Contato</h2>
+    <p>
+      <strong>Multiverso Digital</strong><br />
+      E-mail: <a href="mailto:contato@multiversodigital.com.br">contato@multiversodigital.com.br</a><br /><br />
+      Para questões relacionadas à LGPD, este endereço funciona também como canal do
+      Encarregado de Dados (DPO).
+    </p>
+
+    <footer>
+      &copy; 2026 Multiverso Digital — AntiGolpeia. Todos os direitos reservados.<br />
+      <a href="termos-de-uso.html">Termos de Uso</a>
+    </footer>
+  </div>
+</body>
+</html>

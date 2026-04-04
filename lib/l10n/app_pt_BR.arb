@@ -1,0 +1,89 @@
+{
+  "@@locale": "pt_BR",
+
+  "antigolpe_monitoring_active": "Monitoramento ativo",
+  "antigolpe_monitoring_desc": "AntiGolpeia está protegendo suas mensagens em segundo plano.",
+  "antigolpe_log_fraud": "Golpe detectado",
+  "antigolpe_log_safe": "Mensagem verificada — sem riscos.",
+
+  "antigolpeia_ia_scanning": "IA verificando padrões de fraude...",
+  "@antigolpeia_ia_scanning": { "description": "Exibido enquanto a IA analisa o conteúdo contra a base comunitária." },
+
+  "antigolpeia_ia_confirmed": "Este padrão foi identificado como golpe pela comunidade.",
+  "@antigolpeia_ia_confirmed": { "description": "Exibido quando o padrão corresponde a um golpe confirmado na base." },
+
+  "antigolpeia_ia_contribute": "Enviar este padrão para fortalecer a IA.",
+  "@antigolpeia_ia_contribute": { "description": "CTA para o usuário contribuir com o padrão para a base comunitária." },
+
+  "antigolpeia_ia_pattern_match": "IA: Padrão de golpe idêntico detectado!",
+  "@antigolpeia_ia_pattern_match": { "description": "Banner vermelho quando o motor local detecta golpe por similaridade." },
+
+  "antigolpeia_ia_updated": "Proteção atualizada",
+  "@antigolpeia_ia_updated": { "description": "Rodapé com data/hora da última sincronização da base comunitária." },
+
+  "antigolpeia_stats_title": "Proteção AntiGolpeia",
+  "@antigolpeia_stats_title": { "description": "Título da tela de dashboard de estatísticas." },
+
+  "antigolpeia_stats_blocked_label": "golpes bloqueados",
+  "@antigolpeia_stats_blocked_label": { "description": "Label abaixo do contador principal no dashboard." },
+
+  "antigolpeia_ai_analysis": "Por que é golpe?",
+  "@antigolpeia_ai_analysis": { "description": "Título do bottom sheet de detalhes do risco calculado pela IA." },
+
+  "antigolpeia_whitelist_title": "Contatos Confiáveis",
+  "@antigolpeia_whitelist_title": { "description": "Título da tela de gestão da Whitelist." },
+
+  "antigolpeia_whitelist_empty": "Nenhum contato confiável cadastrado.\nToque em + para adicionar.",
+  "@antigolpeia_whitelist_empty": { "description": "Estado vazio da Whitelist." },
+
+  "antigolpeia_reason_voip": "Origem Suspeita (número VoIP internacional)",
+  "@antigolpeia_reason_voip": { "description": "Motivo de risco: número VoIP detectado pela AbstractAPI." },
+
+  "antigolpeia_reason_link": "Link Malicioso Detectado",
+  "@antigolpeia_reason_link": { "description": "Motivo de risco: URL suspeita no conteúdo da mensagem." },
+
+  "antigolpeia_reason_community": "Relatado por Outros Usuários",
+  "@antigolpeia_reason_community": { "description": "Motivo de risco: reports comunitários na base AntiGolpeia." },
+
+  "antigolpeia_reason_pattern": "Padrão Idêntico a Golpe Conhecido",
+  "@antigolpeia_reason_pattern": { "description": "Motivo de risco: similaridade >= 85% com padrão no cache local." },
+
+  "antigolpeia_auth_error": "Sessão expirada. Faça login novamente.",
+  "@antigolpeia_auth_error": { "description": "Erro de autenticação no backup." },
+
+  "antigolpeia_backup_not_found": "Nenhum backup encontrado na nuvem.",
+  "@antigolpeia_backup_not_found": { "description": "Usuário ainda não fez backup." },
+
+  "antigolpeia_supabase_online": "Conectado ao Supabase",
+  "@antigolpeia_supabase_online": { "description": "Status de conexão positivo." },
+
+  "antigolpeia_supabase_offline": "Sem conexão com a nuvem",
+  "@antigolpeia_supabase_offline": { "description": "Status de conexão negativo." },
+
+  "antigolpeia_btn_backup": "SALVAR NA NUVEM",
+  "@antigolpeia_btn_backup": { "description": "Botão de upload de backup." },
+
+  "antigolpeia_btn_restore": "RESTAURAR DADOS",
+  "@antigolpeia_btn_restore": { "description": "Botão de restauração de backup." },
+
+  "antigolpeia_backup_title": "Backup de Segurança",
+  "@antigolpeia_backup_title": { "description": "Título da tela de backup." },
+
+  "antigolpeia_block_confirm_title": "Bloquear Ameaça?",
+  "@antigolpeia_block_confirm_title": { "description": "Título do card de confirmação de bloqueio." },
+
+  "antigolpeia_btn_block_now": "BLOQUEAR NO SISTEMA",
+  "@antigolpeia_btn_block_now": { "description": "Botão de bloqueio definitivo." },
+
+  "antigolpeia_settings_sound_title": "Alertas Sonoros Críticos",
+  "@antigolpeia_settings_sound_title": { "description": "Toggle de sons de alerta." },
+
+  "antigolpeia_settings_haptic": "Vibração de Alerta",
+  "@antigolpeia_settings_haptic": { "description": "Toggle de feedback háptico." },
+
+  "antigolpeia_report_title": "Denunciar às Autoridades",
+  "@antigolpeia_report_title": { "description": "Título do card de denúncia formal." },
+
+  "antigolpeia_report_subtitle": "Enviar evidências ao Procon / delegacia.",
+  "@antigolpeia_report_subtitle": { "description": "Subtítulo explicativo do card de denúncia." }
+}

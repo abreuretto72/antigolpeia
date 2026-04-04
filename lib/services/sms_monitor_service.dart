@@ -1,14 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:telephony/telephony.dart';
 import '../main.dart';
 import '../pages/result_page.dart';
 import 'api_service.dart';
-import '../features/antigolpe/services/twilio_service.dart';
 
-// Chamado em background pelo plugin — deve ser função top-level
+// ── Background isolate ────────────────────────────────────────────────────
+// Chamado pelo plugin telephony em um isolate separado.
+// DEVE reinicializar todas as dependências — o isolate não compartilha estado.
 @pragma('vm:entry-point')
-void _onBackgroundSms(SmsMessage message) {
-  SmsMonitorService()._process(message);
+void _onBackgroundSms(SmsMessage message) async {
+  // 1. Inicializar Flutter bindings no isolate
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. Carregar .env
+  await dotenv.load(fileName: '.env');
+
+  // 3. Inicializar Supabase
+  await Supabase.initialize(
+    url: dotenv.env['EXPO_PUBLIC_SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'] ?? '',
+  );
+
+  // 4. Processar sem alertas visuais (sem contexto de UI no background)
+  await SmsMonitorService()._processBackground(message);
 }
 
 // Short codes oficiais de bancos brasileiros (whitelist local)
@@ -34,21 +50,18 @@ class SmsMonitorService {
 
   final _telephony = Telephony.instance;
   final _apiService = ApiService();
-  final _twilioService = TwilioService();
   bool _isListening = false;
 
-  Future<bool> get isPermissionGranted async {
-    return await _telephony.requestSmsPermissions ?? false;
-  }
+  Future<bool> get isPermissionGranted async =>
+      await _telephony.requestSmsPermissions ?? false;
 
-  Future<bool> requestPermission() async {
-    return await _telephony.requestSmsPermissions ?? false;
-  }
+  Future<bool> requestPermission() async =>
+      await _telephony.requestSmsPermissions ?? false;
 
   void startListening() {
     if (_isListening) return;
     _telephony.listenIncomingSms(
-      onNewMessage: _process,
+      onNewMessage: _processForground,
       onBackgroundMessage: _onBackgroundSms,
       listenInBackground: true,
     );
@@ -56,72 +69,89 @@ class SmsMonitorService {
     debugPrint('[SmsMonitor] Escutando SMS.');
   }
 
-  Future<void> _process(SmsMessage message) async {
+  // ── Foreground: análise + alerta visual ──────────────────────────────────
+
+  Future<void> _processForground(SmsMessage message) async {
+    final result = await _analyze(message);
+    if (result != null) _showAlert(result);
+  }
+
+  // ── Background: análise silenciosa (sem UI) ──────────────────────────────
+  // Salva no histórico via ApiService — o usuário verá na próxima abertura.
+
+  Future<void> _processBackground(SmsMessage message) async {
+    await _analyze(message); // skipSave = false → salva no histórico
+  }
+
+  // ── Lógica compartilhada de análise ─────────────────────────────────────
+
+  Future<Map<String, dynamic>?> _analyze(SmsMessage message) async {
     final sender = message.address ?? '';
     final body = message.body ?? '';
-    if (sender.isEmpty || body.isEmpty) return;
+    if (sender.isEmpty || body.isEmpty) return null;
 
     // Ignora short codes bancários conhecidos
     final normalized = sender.replaceAll(RegExp(r'\D'), '');
-    if (_bankShortCodes.contains(normalized)) {
-      debugPrint('[SmsMonitor] Short code bancário ignorado: $sender');
-      return;
-    }
+    if (_bankShortCodes.contains(normalized)) return null;
 
     final hasLink = _hasSuspiciousLink(body);
 
-    // Análise de conteúdo via Claude (privacidade: só o texto, não o número)
     Map<String, dynamic>? contentResult;
     try {
-      contentResult = await _apiService.analyzeContent('sms', body, skipSave: false);
+      contentResult = await _apiService.analyzeContent(
+        'sms',
+        body,
+        skipSave: false,
+      );
     } catch (e) {
-      debugPrint('[SmsMonitor] Erro na análise de conteúdo: $e');
+      debugPrint('[SmsMonitor] Erro na análise: $e');
+      return null;
     }
 
-    final contentRisk = (contentResult?['risco'] as num?)?.toInt() ?? 0;
-
-    // Eleva risco automaticamente se link suspeito detectado localmente
+    final contentRisk = (contentResult['risco'] as num?)?.toInt() ?? 0;
     final effectiveRisk = hasLink && contentRisk < 70 ? 75 : contentRisk;
 
-    if (effectiveRisk < 50) return;
+    if (effectiveRisk < 50) return null;
 
-    // Verificação do remetente via Twilio apenas se for número E2 (não short code)
+    // Verificação SIM Swap via Edge Function (não expõe credentials)
     if (sender.startsWith('+') || sender.length > 6) {
       try {
-        final simResult = await _twilioService.checkSimSwap(sender);
-        if (simResult['isSwapped'] == true) {
-          _showAlert({
+        final simRes = await Supabase.instance.client.functions.invoke(
+          'check-sim-swap',
+          body: {'phone': sender},
+        );
+        final simData = simRes.data as Map<String, dynamic>? ?? {};
+        if (simData['isSwapped'] == true) {
+          return {
             'risco': 95,
             'classificacao': 'golpe',
             'tipo_golpe': 'SIM Swap + SMS Suspeito',
-            'explicacao': 'O número $sender trocou de chip recentemente e enviou um SMS suspeito. '
-                'Golpistas usam chips clonados para enganar vítimas.',
+            'explicacao':
+                'O número $sender trocou de chip recentemente e enviou um SMS suspeito.',
             'sinais_alerta': [
               'Chip do remetente trocado recentemente',
               if (hasLink) 'Contém link encurtado suspeito',
               'Risco alto confirmado pela análise de conteúdo',
             ],
-            'acao_imediata': 'Não clique em nenhum link. Bloqueie o número imediatamente.',
+            'acao_imediata':
+                'Não clique em nenhum link. Bloqueie o número imediatamente.',
             'nivel_urgencia': 'extremo',
             'confianca': 90,
             'golpe_conhecido': true,
-          });
-          return;
+          };
         }
       } catch (e) {
-        debugPrint('[SmsMonitor] Twilio check error: $e');
+        debugPrint('[SmsMonitor] SIM Swap check error: $e');
       }
     }
 
-    if (contentResult != null) {
-      _showAlert(contentResult);
-    }
+    return contentResult;
   }
 
   bool _hasSuspiciousLink(String text) {
     final urlRegex = RegExp(r'https?://([^\s/]+)', caseSensitive: false);
     return urlRegex.allMatches(text).any(
-      (m) => _suspiciousHosts.any((host) => (m.group(1) ?? '').contains(host)),
+      (m) => _suspiciousHosts.any((h) => (m.group(1) ?? '').contains(h)),
     );
   }
 
@@ -131,7 +161,8 @@ class SmsMonitorService {
 
     ScaffoldMessenger.of(ctx).showSnackBar(
       SnackBar(
-        content: Text('📱 SMS SUSPEITO: ${result['tipo_golpe'] ?? 'Golpe detectado'}'),
+        content: Text(
+            '📱 SMS SUSPEITO: ${result['tipo_golpe'] ?? 'Golpe detectado'}'),
         backgroundColor: Colors.red.shade800,
         duration: const Duration(seconds: 8),
         action: SnackBarAction(

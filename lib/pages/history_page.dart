@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../features/antigolpe/constants/antigolpe_constants.dart';
+import '../features/antigolpeia/services/guard_service.dart';
+import '../features/antigolpeia/presentation/widgets/sync_status_footer.dart';
 import '../services/api_service.dart';
 import 'result_page.dart';
 
@@ -11,50 +14,53 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage> {
   final _apiService = ApiService();
+  final _guard = GuardService();
 
-  Widget _getOriginIcon(String? inputType) {
-    switch (inputType?.toLowerCase()) {
-      case 'whatsapp':
-        return const Icon(Icons.chat, color: Color(0xFF25D366), size: 20);
-      case 'sms':
-        return const Icon(Icons.sms, color: Colors.blueAccent, size: 20);
-      case 'email':
-        return const Icon(Icons.email, color: Colors.orangeAccent, size: 20);
-      case 'phone':
-        return const Icon(Icons.phone, color: Colors.purpleAccent, size: 20);
-      case 'text':
-      default:
-        return const Icon(Icons.edit_note, color: Colors.grey, size: 20);
-    }
+  Widget _originIcon(String? type) {
+    return switch (type?.toLowerCase()) {
+      'whatsapp' => const Icon(Icons.chat, color: Color(0xFF25D366), size: 18),
+      'sms' => const Icon(Icons.sms, color: Colors.blueAccent, size: 18),
+      'email' => const Icon(Icons.email, color: Colors.orangeAccent, size: 18),
+      'phone' => const Icon(Icons.phone, color: Colors.purpleAccent, size: 18),
+      _ => const Icon(Icons.edit_note, color: Colors.grey, size: 18),
+    };
   }
 
-  Color _getColorFromClassificacao(String? classificacao) {
-    if (classificacao == null) return Colors.grey;
-    if (classificacao.toLowerCase() == 'seguro') return Colors.green;
-    if (classificacao.toLowerCase() == 'suspeito') return Colors.orange;
-    if (classificacao.toLowerCase() == 'golpe') return Colors.red;
-    return Colors.grey;
+  String _maskPhone(String? s) {
+    if (s == null || s.length < 6) return s ?? '—';
+    return '${s.substring(0, s.length - 4)}****';
+  }
+
+  Color _classColor(dynamic c) {
+    return switch (c?.toString().toLowerCase()) {
+      'golpe' => AntiGolpeConstants.colorRisk,
+      'suspeito' => Colors.orange,
+      _ => AntiGolpeConstants.colorSafe,
+    };
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Histórico')),
+      appBar: AppBar(title: const Text('HISTÓRICO DE AMEAÇAS')),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _apiService.getHistory(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: AntiGolpeConstants.colorSafe),
+            );
           }
           if (snapshot.hasError) {
             return const Center(child: Text('Erro ao carregar histórico.'));
           }
+
           final raw = snapshot.data;
           if (raw == null || raw.isEmpty) {
             return const Center(child: Text('Nenhuma análise encontrada.'));
           }
 
-          // Deduplica por conteúdo — mantém só o primeiro (mais recente) de cada texto
+          // Deduplicar por conteúdo
           final seen = <String>{};
           final data = raw.where((item) {
             final key = item['content']?.toString().trim() ?? '';
@@ -63,61 +69,133 @@ class _HistoryPageState extends State<HistoryPage> {
             return true;
           }).toList();
 
-          return ListView.builder(
-            itemCount: data.length,
-            itemBuilder: (context, index) {
-              final item = data[index];
-              final risk = item['risk'] as int;
-              final classificacao = item['classification'] ?? item['result']?['classificacao'];
-              final color = _getColorFromClassificacao(classificacao);
-              
-              return ListTile(
-                leading: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: color.withValues(alpha: 0.2),
-                      child: Text(
-                        risk.toString(),
-                        style: TextStyle(color: color, fontWeight: FontWeight.bold),
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: data.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, indent: 72),
+                  itemBuilder: (context, index) {
+                    final item = data[index];
+                    final classification = item['classification']
+                        ?? item['result']?['classificacao'];
+                    final sender = item['result']?['_sender']?.toString()
+                        ?? item['input_type']?.toString();
+                    final isTrusted = _guard.check(sender ?? '').isTrusted;
+                    final inputType = item['input_type']?.toString();
+                    final fraudType =
+                        item['result']?['tipo_golpe']?.toString() ?? '';
+                    final color = _classColor(classification);
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      leading: CircleAvatar(
+                        radius: 22,
+                        backgroundColor: color.withValues(alpha: 0.15),
+                        child: _originIcon(inputType),
                       ),
-                    ),
-                    Positioned(
-                      bottom: -4,
-                      right: -6,
-                      child: _getOriginIcon(item['input_type']?.toString()),
-                    ),
-                  ],
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              isTrusted
+                                  ? '${item['result']?['_sender'] ?? sender} (Whitelist)'
+                                  : _maskPhone(sender),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 14),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            inputType?.toUpperCase() ?? '',
+                            style: const TextStyle(
+                                fontSize: 10, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _Badge(
+                              label: isTrusted
+                                  ? 'SEGURO'
+                                  : switch (classification?.toString().toLowerCase()) {
+                                      'golpe' => 'GOLPE CONFIRMADO',
+                                      'suspeito' => 'SUSPEITO',
+                                      _ => 'SEGURO',
+                                    },
+                              color: isTrusted
+                                  ? AntiGolpeConstants.colorSafe
+                                  : color,
+                            ),
+                            if (fraudType.isNotEmpty && fraudType != 'N/A')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 3),
+                                child: Text(
+                                  item['content']?.toString() ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 11, color: Colors.white54),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      isThreeLine: true,
+                      onTap: () {
+                        final result = Map<String, dynamic>.from(
+                            item['result'] as Map? ?? {});
+                        result['_content'] = item['content'];
+                        result['_input_type'] = item['input_type'];
+                        result['_created_at'] = item['created_at'];
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => ResultPage(result: result)),
+                        );
+                      },
+                    );
+                  },
                 ),
-                title: Text(() {
-                  final tipo = item['result']?['tipo_golpe']?.toString() ?? '';
-                  if (tipo.isNotEmpty && tipo != 'N/A') return tipo;
-                  return classificacao?.toString().toUpperCase() ?? 'Análise';
-                }()),
-                subtitle: Text(
-                  item['content']?.toString() ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                onTap: () {
-                  final result = Map<String, dynamic>.from(
-                    item['result'] as Map? ?? {},
-                  );
-                  // Injeta metadados no result para exibição na ResultPage
-                  result['_content'] = item['content'];
-                  result['_input_type'] = item['input_type'];
-                  result['_created_at'] = item['created_at'];
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ResultPage(result: result),
-                    ),
-                  );
-                },
-              );
-            },
+              ),
+              SyncStatusFooter(lastSyncAt: DateTime.now()),
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _Badge({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
