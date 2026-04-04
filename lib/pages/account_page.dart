@@ -115,8 +115,8 @@ class _AccountPageState extends State<AccountPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _deleting = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Erro ao excluir conta: $e'),
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Não conseguimos excluir sua conta agora. Verifique sua conexão e tente novamente.'),
         backgroundColor: AntiGolpeConstants.colorRisk,
         behavior: SnackBarBehavior.floating,
       ));
@@ -191,8 +191,8 @@ class _AccountPageState extends State<AccountPage> {
                             color: Colors.orange.withValues(alpha: 0.3)),
                       ),
                       child: const Text(
-                        'Conta anônima — seus dados são vinculados a este dispositivo. '
-                        'Se desinstalar o app sem fazer backup, os dados são perdidos.',
+                        'Seu perfil está salvo neste celular. Faça backup em '
+                        'Configurações para não perder seus dados se reinstalar o app.',
                         style: TextStyle(fontSize: 11, color: Colors.orange),
                       ),
                     ),

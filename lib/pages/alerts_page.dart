@@ -26,7 +26,7 @@ class _AlertsPageState extends State<AlertsPage> {
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: Text(
-                  'Não foi possível carregar os alertas.\nTente novamente mais tarde.',
+                  'Ops! Não conseguimos carregar os alertas agora.\nVerifique sua conexão e tente novamente.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white54),
                 ),

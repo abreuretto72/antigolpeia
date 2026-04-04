@@ -81,8 +81,8 @@ class _HomePageState extends State<HomePage> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text(
-                  'Não foi possível analisar. Tente novamente em instantes.')),
+            content: Text('Não conseguimos analisar agora. Verifique sua conexão e tente novamente.'),
+          ),
         );
       }
     } finally {
@@ -144,8 +144,8 @@ class _HomePageState extends State<HomePage> {
       if (!result['success']) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text(
-                  'Não foi possível verificar o número agora. Tente mais tarde.')),
+            content: Text('Não conseguimos verificar esse número agora. Tente novamente em alguns minutos.'),
+          ),
         );
         return;
       }

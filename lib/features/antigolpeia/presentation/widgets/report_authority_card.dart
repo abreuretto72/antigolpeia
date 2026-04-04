@@ -40,10 +40,10 @@ class _ReportAuthorityCardState extends State<ReportAuthorityCard> {
 
   void _showFeedback(ReportResult result) {
     final (msg, color) = switch (result.status) {
-      ReportStatus.sent => ('Denúncia enviada às autoridades.', AntiGolpeConstants.colorSafe),
-      ReportStatus.duplicate => ('Denúncia já registrada.', Colors.orange),
-      ReportStatus.authError => ('Sessão expirada. Faça login.', AntiGolpeConstants.colorRisk),
-      ReportStatus.networkError => ('Falha na conexão. Tente novamente.', AntiGolpeConstants.colorRisk),
+      ReportStatus.sent     => ('Denúncia enviada! Obrigado por ajudar a proteger outras pessoas.', AntiGolpeConstants.colorSafe),
+      ReportStatus.duplicate => (result.message ?? 'Essa denúncia já foi registrada hoje.', Colors.orange),
+      ReportStatus.authError => (result.message ?? 'Você precisa estar conectado para denunciar.', AntiGolpeConstants.colorRisk),
+      ReportStatus.networkError => (result.message ?? 'Não conseguimos enviar. Verifique sua conexão.', AntiGolpeConstants.colorRisk),
     };
 
     ScaffoldMessenger.of(context).showSnackBar(

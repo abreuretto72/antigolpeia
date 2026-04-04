@@ -84,8 +84,8 @@ class _BackupSettingsPageState extends State<BackupSettingsPage> {
       _statusMsg = result.success
           ? 'Dados restaurados com sucesso.'
           : (result.error == 'antigolpeia_backup_not_found'
-              ? 'Nenhum backup encontrado na nuvem.'
-              : result.error ?? 'Erro desconhecido.');
+              ? 'Nenhum backup encontrado. Clique em "Salvar na Nuvem" para criar o primeiro.'
+              : result.error ?? 'Algo deu errado. Tente novamente.');
       _statusColor = result.success
           ? AntiGolpeConstants.colorSafe
           : AntiGolpeConstants.colorRisk;

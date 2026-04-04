@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/authority_report_model.dart';
@@ -27,7 +28,7 @@ class AuthorityReportService {
   }) async {
     final session = _client.auth.currentSession;
     if (session == null) {
-      return const ReportResult(ReportStatus.authError, 'Sessão expirada.');
+      return const ReportResult(ReportStatus.authError, 'Você precisa estar conectado para enviar denúncias.');
     }
 
     final cleaned = _dataset.sanitize(rawMessage);
@@ -45,7 +46,7 @@ class AuthorityReportService {
 
     if (isDuplicate) {
       return const ReportResult(
-          ReportStatus.duplicate, 'Denúncia idêntica enviada nas últimas 24h.');
+          ReportStatus.duplicate, 'Essa denúncia já foi registrada hoje. Obrigado por estar atento!');
     }
 
     try {
@@ -68,9 +69,10 @@ class AuthorityReportService {
 
       return const ReportResult(ReportStatus.sent);
     } on AuthException {
-      return const ReportResult(ReportStatus.authError, 'Sessão expirada.');
+      return const ReportResult(ReportStatus.authError, 'Você precisa estar conectado para enviar denúncias.');
     } catch (e) {
-      return ReportResult(ReportStatus.networkError, e.toString());
+      debugPrint('[AuthorityReport] Erro ao enviar: $e');
+      return const ReportResult(ReportStatus.networkError, 'Não conseguimos enviar a denúncia. Verifique sua conexão e tente novamente.');
     }
   }
 

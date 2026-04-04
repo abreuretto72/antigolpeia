@@ -15,35 +15,38 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signIn() async {
     setState(() => _isLoading = true);
     
-    final rawEmail = _emailController.text;
-    final cleanEmail = rawEmail.trim();
-    
-    debugPrint('[AUTH LOG] =======================================');
-    debugPrint('[AUTH LOG] Attempting Login');
-    debugPrint('[AUTH LOG] Raw email length: \${rawEmail.length}, content: "\$rawEmail"');
-    debugPrint('[AUTH LOG] Clean email length: \${cleanEmail.length}, content: "\$cleanEmail"');
-    
+    final cleanEmail = _emailController.text.trim();
+
     try {
-      debugPrint('[AUTH LOG] Calling signInWithOtp...');
       await Supabase.instance.client.auth.signInWithOtp(
         email: cleanEmail,
         emailRedirectTo: 'io.supabase.antigolpeia://login-callback/',
       );
-      debugPrint('[AUTH LOG] Call success, Otp sent.');
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Link de login enviado para o seu e-mail!')),
         );
       }
     } on AuthException catch (e) {
-      debugPrint('[AUTH LOG] Supabase AuthException: \${e.message}');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      debugPrint('[Login] AuthException: ${e.message}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('E-mail inválido ou não encontrado. Verifique e tente novamente.'),
+          ),
+        );
+      }
     } catch (e) {
-      debugPrint('[AUTH LOG] Unexpected error: \$e');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erro inesperado.')));
+      debugPrint('[Login] Erro: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Não conseguimos enviar o link. Verifique sua conexão e tente novamente.'),
+          ),
+        );
+      }
     } finally {
-      debugPrint('[AUTH LOG] =======================================');
       if (mounted) setState(() => _isLoading = false);
     }
   }
