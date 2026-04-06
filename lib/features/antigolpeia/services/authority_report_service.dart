@@ -36,20 +36,20 @@ class AuthorityReportService {
     final victimId = session.user.id;
     final now = DateTime.now();
 
-    // Dedup: same offender + same victim in last 24h
-    final box = Hive.box<AuthorityReportModel>(_boxName);
-    final cutoff = now.subtract(const Duration(hours: 24)).millisecondsSinceEpoch;
-    final isDuplicate = box.values.any((r) =>
-        r.offenderPhone == phone &&
-        r.victimId == victimId &&
-        r.timestampMs >= cutoff);
-
-    if (isDuplicate) {
-      return const ReportResult(
-          ReportStatus.duplicate, 'Essa denúncia já foi registrada hoje. Obrigado por estar atento!');
-    }
-
     try {
+      // Dedup: same offender + same victim in last 24h
+      final box = Hive.box<AuthorityReportModel>(_boxName);
+      final cutoff = now.subtract(const Duration(hours: 24)).millisecondsSinceEpoch;
+      final isDuplicate = box.values.any((r) =>
+          r.offenderPhone == phone &&
+          r.victimId == victimId &&
+          r.timestampMs >= cutoff);
+
+      if (isDuplicate) {
+        return const ReportResult(
+            ReportStatus.duplicate, 'Essa denúncia já foi registrada hoje. Obrigado por estar atento!');
+      }
+
       await _client.from('authority_reports').insert({
         'offender_phone': phone,
         'cleaned_message': cleaned,

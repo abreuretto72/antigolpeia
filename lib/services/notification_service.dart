@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:notification_listener_service/notification_event.dart';
+import 'activity_counter.dart';
 import 'api_service.dart';
+import '../features/antigolpeia/services/guard_service.dart';
 import '../main.dart';
 import '../pages/result_page.dart';
 
@@ -56,6 +58,14 @@ class NotificationService {
   }
 
   void _processNotification(ServiceNotificationEvent event) {
+    try {
+      _handleNotification(event);
+    } catch (e) {
+      debugPrint('[NotificationService] Erro inesperado: $e');
+    }
+  }
+
+  void _handleNotification(ServiceNotificationEvent event) {
     final String? packageName = event.packageName;
     final String? content = event.content;
     final String? title = event.title;
@@ -69,6 +79,27 @@ class NotificationService {
     if (content.length <= 5) return;
     if (_isDuplicate(packageName, event.id)) return;
 
+    final analysisType = isWhatsApp ? AnalysisType.whatsapp : AnalysisType.gmail;
+
+    // Filtro 1: verifica se o remetente é contato confiável.
+    // WhatsApp expõe nome do contato no title (se salvo na agenda)
+    // ou o número bruto (ex: "+55 11 99999-0000") se não estiver salvo.
+    final senderTitle = title?.trim() ?? '';
+    if (senderTitle.isNotEmpty) {
+      final guard = GuardService();
+      // Tenta por nome primeiro; se o título parecer um número, tenta por número.
+      final looksLikePhone = RegExp(r'[\d\+]').hasMatch(senderTitle) &&
+          senderTitle.replaceAll(RegExp(r'\D'), '').length >= 8;
+      final result = looksLikePhone
+          ? guard.check(senderTitle)
+          : guard.checkByName(senderTitle);
+      if (result.isTrusted) {
+        ActivityCounter().add(analysisType);
+        _showTrustedAlert(result.matchedContact!.name);
+        return;
+      }
+    }
+
     // Log apenas em debug — nunca expõe conteúdo em release
     if (kDebugMode) {
       debugPrint('[NOTIF] pkg=$packageName analisando (${content.length} chars)');
@@ -78,6 +109,30 @@ class NotificationService {
       content,
       isWhatsApp ? 'whatsapp' : 'email',
       title,
+      analysisType,
+    );
+  }
+
+  void _showTrustedAlert(String name) {
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) return;
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.verified_user, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '$name está nos Contatos Confiáveis — mensagem liberada.',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF10AC84),
+        duration: const Duration(seconds: 5),
+      ),
     );
   }
 
@@ -85,6 +140,7 @@ class NotificationService {
     String content,
     String inputType,
     String? sender,
+    AnalysisType analysisType,
   ) async {
     try {
       final raw = await _apiService.analyzeContent(inputType, content);
@@ -95,10 +151,15 @@ class NotificationService {
         ..['_sender'] = sender
         ..['_created_at'] = DateTime.now().toIso8601String();
 
-      if ((result['risco'] as num? ?? 0) > 50) {
+      final isSuspicious = (result['risco'] as num? ?? 0) > 50;
+      ActivityCounter().add(analysisType, wasSuspicious: isSuspicious);
+
+      if (isSuspicious) {
         _handleHighRiskResult(result);
       }
     } catch (e) {
+      // Conta mesmo em caso de falha da API para não perder o registro
+      ActivityCounter().add(analysisType);
       debugPrint('[NOTIF] Erro na análise: $e');
     }
   }

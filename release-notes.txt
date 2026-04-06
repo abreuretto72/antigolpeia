@@ -1,0 +1,11 @@
+AntiGolpeia — Beta de Teste
+
+Novidades desta versão:
+- Análise de mensagens com IA (WhatsApp, SMS, Gmail)
+- Monitor automático em tempo real
+- Gráficos de estatísticas e inteligência
+- Contatos confiáveis com import da agenda
+- Histórico de ameaças
+- Backup na nuvem
+
+Para reportar problemas: contato@multiversodigital.com.br

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../../../services/contacts_permission_service.dart';
 import '../../antigolpe/constants/antigolpe_constants.dart';
 import '../data/models/whitelist_item.dart';
 import '../services/guard_service.dart';
+import 'contact_picker_view.dart';
 
 class WhitelistView extends StatefulWidget {
   const WhitelistView({super.key});
@@ -13,6 +16,7 @@ class WhitelistView extends StatefulWidget {
 
 class _WhitelistViewState extends State<WhitelistView> {
   final _guard = GuardService();
+  final _permissionService = ContactsPermissionService();
   final _phoneController = TextEditingController();
   final _nameController = TextEditingController();
 
@@ -21,6 +25,52 @@ class _WhitelistViewState extends State<WhitelistView> {
     _phoneController.dispose();
     _nameController.dispose();
     super.dispose();
+  }
+
+  /// Verifica permissão de contatos antes de abrir o diálogo de adição.
+  /// Em iOS, após negação permanente, direciona o usuário para Ajustes.
+  Future<void> _onAddTapped() async {
+    final result = await _permissionService.checkAndRequest();
+
+    if (!mounted) return;
+
+    if (result.isPermanentlyDenied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(AntiGolpeConstants.keyContactsPermissionDenied),
+          action: SnackBarAction(
+            label: 'Ajustes',
+            onPressed: openAppSettings,
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Permissão concedida → abre seletor da agenda
+    // Negada mas não permanentemente → cai no input manual
+    if (result.success) {
+      _openContactPicker();
+    } else {
+      _showAddDialog();
+    }
+  }
+
+  Future<void> _openContactPicker() async {
+    final result = await Navigator.push<ContactPickerResult>(
+      context,
+      MaterialPageRoute(builder: (_) => const ContactPickerView()),
+    );
+
+    if (!mounted || result == null || !result.success) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${result.addedCount} ${AntiGolpeConstants.keyContactsPickerAdded}',
+        ),
+      ),
+    );
   }
 
   Future<void> _showAddDialog() async {
@@ -60,7 +110,11 @@ class _WhitelistViewState extends State<WhitelistView> {
               final phone = _phoneController.text.trim();
               final name = _nameController.text.trim();
               if (phone.isNotEmpty && name.isNotEmpty) {
-                await _guard.add(phone, name);
+                try {
+                  await _guard.add(phone, name);
+                } catch (e) {
+                  debugPrint('[WhitelistView] Erro ao adicionar contato: $e');
+                }
                 if (ctx.mounted) Navigator.pop(ctx);
               }
             },
@@ -86,7 +140,7 @@ class _WhitelistViewState extends State<WhitelistView> {
         ],
       ),
     );
-    if (confirmed == true) await _guard.remove(item);
+    if (confirmed == true && mounted) await _guard.remove(item);
   }
 
   @override
@@ -95,11 +149,25 @@ class _WhitelistViewState extends State<WhitelistView> {
       appBar: AppBar(
         title: const Text(AntiGolpeConstants.keyWhitelistTitle),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AntiGolpeConstants.colorSafe,
-        onPressed: _showAddDialog,
-        tooltip: 'Adicionar contato',
-        child: const Icon(Icons.person_add, color: Colors.white),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            heroTag: 'fab_import',
+            backgroundColor: Colors.blueAccent,
+            onPressed: _onAddTapped,
+            tooltip: 'Importar da agenda',
+            child: const Icon(Icons.contacts_outlined, color: Colors.white),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'fab_manual',
+            backgroundColor: AntiGolpeConstants.colorSafe,
+            onPressed: _showAddDialog,
+            tooltip: 'Adicionar manualmente',
+            child: const Icon(Icons.person_add, color: Colors.white),
+          ),
+        ],
       ),
       body: ValueListenableBuilder(
         valueListenable: Hive.box<WhitelistItem>('antigolpeia_whitelist').listenable(),

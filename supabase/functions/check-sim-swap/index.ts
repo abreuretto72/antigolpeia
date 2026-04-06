@@ -7,7 +7,7 @@ const TWILIO_LOOKUP_URL   = Deno.env.get('TWILIO_LOOKUP_URL')   ?? 'https://look
 const SUPABASE_URL        = Deno.env.get('SUPABASE_URL')        ?? ''
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': SUPABASE_URL || '*',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 

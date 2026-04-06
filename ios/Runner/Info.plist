@@ -79,5 +79,7 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSContactsUsageDescription</key>
+		<string>Para identificar mensagens de pessoas conhecidas e evitar golpes, o AntiGolpeia precisa acessar seus contatos.</string>
 	</dict>
 </plist>

@@ -6,7 +6,7 @@ const SUPABASE_URL        = Deno.env.get('SUPABASE_URL') ?? ''
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': SUPABASE_URL || '*',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
@@ -65,17 +65,20 @@ function extractJson(text: string): string {
   return text.trim()
 }
 
-async function getConfig(): Promise<{ model: string }> {
+async function getConfig(): Promise<{ model: string; testMode: boolean }> {
   try {
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
     const { data } = await adminClient
       .from('app_settings')
       .select('key, value')
-      .in('key', ['ai_model'])
+      .in('key', ['ai_model', 'test_mode'])
     const map = Object.fromEntries((data ?? []).map((r: { key: string; value: string }) => [r.key, r.value]))
-    return { model: map['ai_model'] ?? 'claude-haiku-4-5-20251001' }
+    return {
+      model: map['ai_model'] ?? 'claude-haiku-4-5-20251001',
+      testMode: map['test_mode'] === 'true',
+    }
   } catch {
-    return { model: 'claude-haiku-4-5-20251001' }
+    return { model: 'claude-haiku-4-5-20251001', testMode: false }
   }
 }
 
@@ -98,7 +101,21 @@ serve(async (req) => {
       throw new Error('content is required')
     }
 
-    const { model } = await getConfig()
+    const { model, testMode } = await getConfig()
+
+    // ── Paywall ───────────────────────────────────────────────────────────────
+    // Em test_mode todos os usuários têm acesso ilimitado (plano free sem limites).
+    // Para ativar o paywall: defina test_mode = 'false' em app_settings.
+    if (!testMode) {
+      // TODO: implementar verificação de plano e limite diário aqui
+      // const isPremium = await checkUserPlan(user.id)
+      // if (!isPremium && dailyCount >= FREE_LIMIT) {
+      //   return new Response(JSON.stringify({ error: 'PAYWALL_TRIGGER' }), {
+      //     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      //     status: 403,
+      //   })
+      // }
+    }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

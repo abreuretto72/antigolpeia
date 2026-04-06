@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,42 +16,120 @@ import 'features/antigolpeia/services/ai_dataset_service.dart';
 import 'features/antigolpeia/services/background_sync_service.dart';
 import 'features/antigolpeia/services/guard_service.dart';
 import 'features/antigolpeia/services/block_engine_service.dart';
+import 'features/antigolpeia/data/models/analysis_stats_model.dart';
+import 'services/activity_counter.dart';
 import 'features/antigolpeia/data/models/authority_report_model.dart';
 import 'features/antigolpeia/services/authority_report_service.dart';
+import 'services/foreground_task_service.dart';
 import 'services/revenue_cat_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-Future<void> main() async {
+void main() {
+  // Handler global para erros do framework Flutter
+  FlutterError.onError = (details) {
+    debugPrint('[FlutterError] ${details.exceptionAsString()}\n${details.stack}');
+  };
+
+  // runZonedGuarded captura todos os erros Dart async não tratados
+  runZonedGuarded(_bootstrap, (error, stack) {
+    debugPrint('[ZoneError] $error\n$stack');
+  });
+}
+
+Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
 
-  await Supabase.initialize(
-    url: dotenv.env['EXPO_PUBLIC_SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'] ?? '',
-  );
+  // ── .env ──────────────────────────────────────────────────────────────────
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('[main] .env não carregado: $e');
+  }
 
-  await RevenueCatService.initialize(
-    dotenv.env['REVENUE_API_KEY'] ?? '',
-  );
+  // ── Supabase ──────────────────────────────────────────────────────────────
+  try {
+    await Supabase.initialize(
+      url: dotenv.env['EXPO_PUBLIC_SUPABASE_URL'] ?? '',
+      anonKey: dotenv.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'] ?? '',
+    );
+  } catch (e) {
+    debugPrint('[main] Supabase.initialize falhou: $e');
+  }
 
-  await Hive.initFlutter();
-  Hive.registerAdapter(FraudPatternModelAdapter());
-  Hive.registerAdapter(WhitelistItemAdapter());
-  Hive.registerAdapter(BlacklistItemAdapter());
-  Hive.registerAdapter(AppSettingsAdapter());
-  Hive.registerAdapter(AuthorityReportModelAdapter());
-  await AiDatasetService.initialize();
-  await GuardService.initialize();
-  await BlockEngineService.initialize();
-  await AuthorityReportService.initialize();
-  await Hive.openBox<AppSettings>('app_settings');
-  await BackgroundSyncService().init();
+  // ── RevenueCat ────────────────────────────────────────────────────────────
+  // Só inicializa com chave de produção — chave test_ bloqueia o app em
+  // builds de distribuição. Beta usa sem assinatura.
+  final rcKey = dotenv.env['REVENUE_API_KEY'] ?? '';
+  if (rcKey.isNotEmpty && !rcKey.startsWith('test_')) {
+    try {
+      await RevenueCatService.initialize(rcKey);
+    } catch (e) {
+      debugPrint('[main] RevenueCat.initialize falhou: $e');
+    }
+  } else {
+    debugPrint('[main] RevenueCat ignorado (chave ausente ou test_)');
+  }
 
-  WhatsAppMonitorService().init();
-  await NotificationService().init();
+  // ── Hive: init + adapters + boxes ─────────────────────────────────────────
+  try {
+    await Hive.initFlutter();
+    // registerAdapter ignora silenciosamente se o adapter já estiver registrado
+    _registerHiveAdapter(FraudPatternModelAdapter());
+    _registerHiveAdapter(WhitelistItemAdapter());
+    _registerHiveAdapter(BlacklistItemAdapter());
+    _registerHiveAdapter(AppSettingsAdapter());
+    _registerHiveAdapter(AuthorityReportModelAdapter());
+    _registerHiveAdapter(AnalysisStatsAdapter());
+    await Hive.openBox<AppSettings>('app_settings');
+    await Hive.openBox<AnalysisStats>(AnalysisStats.boxName);
+    ActivityCounter().init();
+  } catch (e) {
+    debugPrint('[main] Hive init falhou: $e');
+  }
+
+  // ── Serviços de dados ─────────────────────────────────────────────────────
+  try {
+    await AiDatasetService.initialize();
+    await GuardService.initialize();
+    await BlockEngineService.initialize();
+    await AuthorityReportService.initialize();
+  } catch (e) {
+    debugPrint('[main] Serviços de dados init falhou: $e');
+  }
+
+  // ── Sync em background ────────────────────────────────────────────────────
+  try {
+    await BackgroundSyncService().init();
+  } catch (e) {
+    debugPrint('[main] BackgroundSync init falhou: $e');
+  }
+
+  // ── Monitores ─────────────────────────────────────────────────────────────
+  try {
+    WhatsAppMonitorService().init();
+    await NotificationService().init();
+  } catch (e) {
+    debugPrint('[main] Monitores init falhou: $e');
+  }
+
+  // ── Foreground task ───────────────────────────────────────────────────────
+  try {
+    ForegroundTaskService.initialize();
+  } catch (e) {
+    debugPrint('[main] ForegroundTask init falhou: $e');
+  }
 
   runApp(const AntiGolpeApp());
+}
+
+/// Registra adapter Hive ignorando conflito de typeId já registrado.
+void _registerHiveAdapter<T>(TypeAdapter<T> adapter) {
+  try {
+    Hive.registerAdapter(adapter);
+  } catch (e) {
+    debugPrint('[Hive] Adapter ${adapter.runtimeType} já registrado: $e');
+  }
 }
 
 class AntiGolpeApp extends StatelessWidget {

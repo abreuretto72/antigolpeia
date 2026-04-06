@@ -139,6 +139,29 @@ class HelpPage extends StatelessWidget {
                 'vai alertar você.',
           ),
           _HelpTile(
+            icon: Icons.verified_user_outlined,
+            iconColor: Colors.tealAccent,
+            title: 'Como os Contatos Confiáveis protegem nas análises automáticas?',
+            body: 'Quando uma mensagem chega pelo WhatsApp, Gmail ou SMS, o app '
+                'verifica primeiro se o remetente está na sua lista de '
+                'Contatos Confiáveis — antes de enviar qualquer coisa para a IA.\n\n'
+                'Se for um contato confiável, você vê um aviso verde:\n'
+                '"[Nome] está nos Contatos Confiáveis — mensagem liberada."\n\n'
+                'A mensagem não é analisada pela IA, economizando processamento '
+                'e garantindo que pessoas de confiança nunca disparem alertas falsos.\n\n'
+                'Como funciona a verificação por canal:\n\n'
+                '• SMS: compara pelo número de telefone — a correspondência é '
+                'exata e independe de como o contato está salvo na agenda.\n\n'
+                '• WhatsApp e Gmail: o sistema recebe apenas o nome exibido na '
+                'notificação (o WhatsApp não fornece o número ao app). Por isso, '
+                'o nome cadastrado nos Contatos Confiáveis deve ser idêntico ao '
+                'nome salvo na sua agenda. Se o número não estiver salvo na '
+                'agenda, o WhatsApp exibe o número bruto na notificação — nesse '
+                'caso a verificação é feita pelo número automaticamente.\n\n'
+                'Dica: para máxima proteção no WhatsApp, salve o contato na '
+                'agenda com o mesmo nome que você usou nos Contatos Confiáveis.',
+          ),
+          _HelpTile(
             icon: Icons.campaign_outlined,
             iconColor: Colors.orangeAccent,
             title: 'O que são os Alertas de Golpes?',

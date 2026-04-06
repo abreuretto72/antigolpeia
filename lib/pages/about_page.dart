@@ -5,8 +5,8 @@ import '../features/antigolpe/constants/antigolpe_constants.dart';
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
-  static const String _version = '1.0.0';
-  static const String _build = '1';
+  static const String _version = '1.0.2';
+  static const String _build = '3';
   static const String _company = 'Multiverso Digital';
   static const String _email = 'contato@multiversodigital.com.br';
 
@@ -104,11 +104,6 @@ class AboutPage extends StatelessWidget {
                   fontSize: 14, color: Colors.white60, height: 1.6),
             ),
 
-            const SizedBox(height: 36),
-
-            // ── Tecnologias ──────────────────────────────────────────────────
-            const _TechBadgeRow(),
-
             const SizedBox(height: 40),
 
             // ── Direitos ─────────────────────────────────────────────────────
@@ -167,34 +162,5 @@ class _InfoRow extends StatelessWidget {
     return onTap != null
         ? InkWell(onTap: onTap, borderRadius: BorderRadius.circular(8), child: row)
         : row;
-  }
-}
-
-class _TechBadgeRow extends StatelessWidget {
-  const _TechBadgeRow();
-
-  @override
-  Widget build(BuildContext context) {
-    const badges = ['Flutter', 'Supabase', 'Claude AI', 'LGPD'];
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
-      children: badges
-          .map((b) => Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.12)),
-                ),
-                child: Text(b,
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.white60)),
-              ))
-          .toList(),
-    );
   }
 }

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:telephony/telephony.dart';
+import '../features/antigolpeia/services/guard_service.dart';
 import '../main.dart';
 import '../pages/result_page.dart';
+import 'activity_counter.dart';
 import 'api_service.dart';
 
 // ── Background isolate ────────────────────────────────────────────────────
@@ -77,8 +79,47 @@ class SmsMonitorService {
   // ── Foreground: análise + alerta visual ──────────────────────────────────
 
   Future<void> _processForground(SmsMessage message) async {
+    final sender = message.address ?? '';
+
+    // Filtro 1: verifica se o remetente é contato confiável pelo número.
+    if (sender.isNotEmpty) {
+      final guard = GuardService().check(sender);
+      if (guard.isTrusted) {
+        ActivityCounter().add(AnalysisType.sms);
+        _showTrustedAlert(guard.matchedContact!.name, sender);
+        return;
+      }
+    }
+
     final result = await _analyze(message);
+    ActivityCounter().add(
+      AnalysisType.sms,
+      wasSuspicious: result != null && (result['risco'] as num? ?? 0) >= 50,
+    );
     if (result != null) _showAlert(result);
+  }
+
+  void _showTrustedAlert(String name, String phone) {
+    final ctx = navigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted) return;
+    ScaffoldMessenger.of(ctx).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.verified_user, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '$name está nos Contatos Confiáveis — SMS liberado.',
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF10AC84),
+        duration: const Duration(seconds: 5),
+      ),
+    );
   }
 
   // ── Background: análise silenciosa (sem UI) ──────────────────────────────

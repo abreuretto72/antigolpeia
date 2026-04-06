@@ -176,7 +176,7 @@ https://confereantes.app/download
 
   @override
   Widget build(BuildContext context) {
-    final risk = widget.result['risco'] as int? ?? 0;
+    final risk = (widget.result['risco'] as num?)?.toInt() ?? 0;
     final classificacao = widget.result['classificacao']?.toString() ?? 'Desconhecido';
     final color = _getColorFromClassificacao(classificacao);
 

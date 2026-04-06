@@ -1,7 +1,7 @@
 name: antigolpeia
 description: "AntiGolpeia — Proteção inteligente contra golpes no WhatsApp, SMS e e-mail."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.2+3
 
 environment:
   sdk: ^3.11.4
@@ -27,6 +27,9 @@ dependencies:
   workmanager: 0.9.0+3
   purchases_flutter: ^9.16.0
   purchases_ui_flutter: ^9.16.0
+  flutter_contacts: ^1.1.7
+  flutter_foreground_task: ^8.0.0
+  fl_chart: ^0.70.0
 
 dev_dependencies:
   flutter_test:

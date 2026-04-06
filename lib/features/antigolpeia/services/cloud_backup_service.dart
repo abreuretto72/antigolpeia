@@ -31,17 +31,17 @@ class CloudBackupService {
       return const BackupResult(success: false, error: 'antigolpeia_auth_error');
     }
 
-    final whitelist = Hive.box<WhitelistItem>('antigolpeia_whitelist')
-        .values
-        .map((e) => {'num': e.phoneNumber, 'name': e.name})
-        .toList();
-
-    final blacklist = Hive.box<BlacklistItem>('antigolpeia_blacklist')
-        .values
-        .map((e) => {'num': e.phoneNumber, 'reason': e.reason})
-        .toList();
-
     try {
+      final whitelist = Hive.box<WhitelistItem>('antigolpeia_whitelist')
+          .values
+          .map((e) => {'num': e.phoneNumber, 'name': e.name})
+          .toList();
+
+      final blacklist = Hive.box<BlacklistItem>('antigolpeia_blacklist')
+          .values
+          .map((e) => {'num': e.phoneNumber, 'reason': e.reason})
+          .toList();
+
       await _client.from(_table).upsert({
         'id': uid,
         'whitelist': whitelist,

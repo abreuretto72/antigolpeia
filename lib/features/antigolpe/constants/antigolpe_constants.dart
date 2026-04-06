@@ -48,6 +48,25 @@ class AntiGolpeConstants {
   static const String keyBlockConfirmTitle = 'antigolpeia_block_confirm_title';
   static const String keyBtnBlockNow = 'antigolpeia_btn_block_now';
 
+  // Chaves de tradução — permissão de contatos
+  static const String keyContactsPermissionTitle = 'Acesso aos Contatos';
+  static const String keyContactsPermissionIosInfo =
+      'No iPhone, precisamos disto para identificar seus contatos seguros.';
+  static const String keyContactsPermissionAndroidInfo =
+      'No Android, isso permite que o AntiGolpeia bloqueie SMS falsos.';
+  static const String keyContactsPermissionDenied =
+      'Permissão negada. Abra Ajustes e permita o acesso aos contatos.';
+
+  // Chaves de tradução — seletor de contatos
+  static const String keyContactsPickerTitle = 'Selecione contatos confiáveis';
+  static const String keyContactsPickerSearch = 'Buscar contato...';
+  static const String keyContactsPickerLoading = 'Carregando contatos...';
+  static const String keyContactsPickerError = 'Não foi possível carregar os contatos.';
+  static const String keyContactsPickerEmpty = 'Nenhum contato encontrado.';
+  static const String keyContactsPickerConfirm = 'Adicionar confiáveis';
+  static const String keyContactsPickerConfirmEmpty = 'Selecione ao menos um contato';
+  static const String keyContactsPickerAdded = 'contato(s) adicionado(s) à lista de confiança.';
+
   // Chaves de tradução — configurações
   static const String keySettingsSoundTitle = 'antigolpeia_settings_sound_title';
   static const String keySettingsHaptic = 'antigolpeia_settings_haptic';

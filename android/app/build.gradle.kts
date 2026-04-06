@@ -6,6 +6,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.firebase.appdistribution")
 }
 
 // ── Keystore (release signing) ────────────────────────────────────────────────
@@ -74,4 +75,14 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// ── Firebase App Distribution ─────────────────────────────────────────────────
+// Distribuição para beta testers sem passar pela Play Store.
+// Uso: ./gradlew appDistributionUploadRelease
+// Autenticação: firebase login (Firebase CLI) ou variável FIREBASE_TOKEN
+firebaseAppDistribution {
+    appId = "1:1052417579840:android:400e3ac9448bab488438a5"
+    releaseNotes = "Beta AntiGolpeia v1.0 — análise de golpes com IA, monitor WhatsApp/SMS/Gmail, estatísticas. Reporte problemas: contato@multiversodigital.com.br"
+    groups = "beta-testers"
 }

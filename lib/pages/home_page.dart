@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/activity_counter.dart';
+import '../features/antigolpeia/data/models/analysis_stats_model.dart';
 import '../services/api_service.dart';
+import '../services/foreground_task_service.dart';
 import '../services/notification_service.dart';
 import '../services/sms_monitor_service.dart';
 import '../services/gmail_service.dart';
 import '../features/antigolpe/constants/antigolpe_constants.dart';
-import '../features/antigolpe/services/twilio_service.dart';
 import '../features/antigolpeia/presentation/dashboard_view.dart';
 import '../features/antigolpeia/presentation/whitelist_view.dart';
 import 'result_page.dart';
+import 'stats_page.dart';
 import 'history_page.dart';
 import 'alerts_page.dart';
 import 'paywall_page.dart';
@@ -29,38 +32,69 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final _textController = TextEditingController();
   final _apiService = ApiService();
   bool _isAnalyzing = false;
   bool _isPrivate = false;
   bool _isNotificationEnabled = false;
   bool _isSmsEnabled = false;
-  bool _isCheckingPhone = false;
+
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
     _checkNotificationStatus();
     _checkSmsStatus();
+    _syncHistoryOnce();
+    ForegroundTaskService.start();
   }
 
   Future<void> _checkSmsStatus() async {
-    final granted = await SmsMonitorService().isPermissionGranted;
-    if (granted) SmsMonitorService().startListening();
-    if (mounted) setState(() => _isSmsEnabled = granted);
+    try {
+      final granted = await SmsMonitorService().isPermissionGranted;
+      if (granted) SmsMonitorService().startListening();
+      if (mounted) setState(() => _isSmsEnabled = granted);
+    } catch (e) {
+      debugPrint('[HomePage] _checkSmsStatus erro: $e');
+    }
   }
 
   @override
   void dispose() {
     _textController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
+  Future<void> _syncHistoryOnce() async {
+    final s = ActivityCounter().stats.value;
+    if (s != null && s.historyLoaded) return;
+    try {
+      final rows = await _apiService.getHistory();
+      ActivityCounter().backfillFromHistory(rows);
+    } catch (e) {
+      debugPrint('[HomePage] Erro ao sincronizar histórico: $e');
+    }
+  }
+
   Future<void> _checkNotificationStatus() async {
-    final status = await NotificationListenerService.isPermissionGranted();
-    if (status) await NotificationService().init();
-    if (mounted) setState(() => _isNotificationEnabled = status);
+    try {
+      final status = await NotificationListenerService.isPermissionGranted();
+      if (status) await NotificationService().init();
+      if (mounted) setState(() => _isNotificationEnabled = status);
+    } catch (e) {
+      debugPrint('[HomePage] _checkNotificationStatus erro: $e');
+    }
   }
 
   Future<void> _analyze(String type, String content) async {
@@ -69,6 +103,8 @@ class _HomePageState extends State<HomePage> {
     try {
       final data = await _apiService.analyzeContent(type, content,
           skipSave: _isPrivate);
+      final isSuspicious = (data['risco'] as num? ?? 0) >= 50;
+      ActivityCounter().add(AnalysisType.manual, wasSuspicious: isSuspicious);
       if (!mounted) return;
       Navigator.push(
         context,
@@ -88,97 +124,6 @@ class _HomePageState extends State<HomePage> {
       }
     } finally {
       if (mounted) setState(() => _isAnalyzing = false);
-    }
-  }
-
-  Future<void> _verifyPhoneNumber() async {
-    final phoneController = TextEditingController();
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Verificar número'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Digite o número que entrou em contato com você.\nVerificamos se o chip foi trocado recentemente (golpe de SIM Swap).',
-              style: TextStyle(fontSize: 13, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: '+55 11 99999-9999',
-                prefixIcon: Icon(Icons.phone),
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Verificar'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !mounted) return;
-
-    final phone =
-        phoneController.text.trim().replaceAll(RegExp(r'[\s\-()]'), '');
-    if (phone.isEmpty) return;
-
-    setState(() => _isCheckingPhone = true);
-    try {
-      final result = await TwilioService().checkSimSwap(phone);
-      if (!mounted) return;
-
-      if (!result['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Não conseguimos verificar esse número agora. Tente novamente em alguns minutos.'),
-          ),
-        );
-        return;
-      }
-
-      final isSwapped = result['isSwapped'] == true;
-      final lastSwap = result['last_swap'] ?? 'recentemente';
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ResultPage(result: {
-            'risco': isSwapped ? 90 : 5,
-            'classificacao': isSwapped ? 'golpe' : 'seguro',
-            'tipo_golpe': isSwapped ? 'Troca de Chip (SIM Swap)' : 'N/A',
-            'explicacao': isSwapped
-                ? 'O número $phone trocou de chip $lastSwap. Golpistas fazem isso para interceptar '
-                    'códigos bancários e assumir contas. NÃO faça PIX para este contato.'
-                : 'O número $phone não apresenta troca de chip recente.',
-            'sinais_alerta': isSwapped
-                ? ['Chip trocado $lastSwap', 'Risco de interceptação de SMS e tokens bancários']
-                : <String>[],
-            'acao_imediata': isSwapped
-                ? 'Bloqueie o contato e confirme a identidade por videochamada.'
-                : 'Nenhuma ação necessária. Número verificado.',
-            'nivel_urgencia': isSwapped ? 'extremo' : 'baixo',
-            'confianca': 85,
-            'golpe_conhecido': isSwapped,
-          }),
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isCheckingPhone = false);
     }
   }
 
@@ -248,6 +193,14 @@ class _HomePageState extends State<HomePage> {
             onTap: () => Navigator.pop(context),
           ),
 
+          // Estatísticas
+          _DrawerItem(
+            icon: Icons.insights,
+            label: 'Estatísticas & Inteligência',
+            color: Colors.cyanAccent,
+            onTap: () => _navigate(const StatsPage()),
+          ),
+
           // Dashboard
           _DrawerItem(
             icon: Icons.bar_chart_rounded,
@@ -300,25 +253,39 @@ class _HomePageState extends State<HomePage> {
 
           const Divider(indent: 16, endIndent: 16),
 
-          // AntiGolpeia Pro — abre paywall RC
+          // AntiGolpeia Pro — abre paywall RC (desativado no beta)
           _DrawerItem(
             icon: Icons.workspace_premium_rounded,
             label: 'AntiGolpeia Pro',
             color: Colors.amber,
             onTap: () async {
               Navigator.pop(context);
-              await RevenueCatUI.presentPaywall(displayCloseButton: true);
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await RevenueCatUI.presentPaywall(displayCloseButton: true);
+              } catch (_) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Assinaturas em breve!')),
+                );
+              }
             },
           ),
 
-          // Gerenciar Assinatura — Customer Center RC
+          // Gerenciar Assinatura — Customer Center RC (desativado no beta)
           _DrawerItem(
             icon: Icons.subscriptions_outlined,
             label: 'Gerenciar Assinatura',
             color: Colors.white54,
             onTap: () async {
               Navigator.pop(context);
-              await RevenueCatUI.presentCustomerCenter();
+              final messenger = ScaffoldMessenger.of(context);
+              try {
+                await RevenueCatUI.presentCustomerCenter();
+              } catch (_) {
+                messenger.showSnackBar(
+                  const SnackBar(content: Text('Assinaturas em breve!')),
+                );
+              }
             },
           ),
 
@@ -419,7 +386,99 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
+
+            // Indicador de atividade
+            ValueListenableBuilder<AnalysisStats?>(
+              valueListenable: ActivityCounter().stats,
+              builder: (_, s, __) {
+                final stats = s ?? AnalysisStats();
+                final isActive = _isNotificationEnabled || _isSmsEnabled;
+                final total = stats.smsTotal + stats.waTotal + stats.gmailTotal + stats.manualTotal;
+                final suspicious = stats.smsSuspicious + stats.waSuspicious + stats.gmailSuspicious + stats.manualSuspicious;
+
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade900,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: suspicious > 0
+                          ? Colors.red.withValues(alpha: 0.5)
+                          : isActive
+                              ? Colors.green.withValues(alpha: 0.4)
+                              : Colors.grey.shade800,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Linha de status
+                      Row(
+                        children: [
+                          if (isActive)
+                            AnimatedBuilder(
+                              animation: _pulseAnimation,
+                              builder: (_, __) => Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.green.withValues(alpha: _pulseAnimation.value),
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              isActive
+                                  ? (total == 0
+                                      ? 'Monitorando... aguardando mensagens'
+                                      : '$total ${total == 1 ? 'análise' : 'análises'} no total')
+                                  : 'Monitores desativados',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isActive ? Colors.green.shade300 : Colors.grey,
+                              ),
+                            ),
+                          ),
+                          if (suspicious > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade900,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$suspicious suspeita${suspicious > 1 ? 's' : ''}',
+                                style: const TextStyle(fontSize: 11, color: Colors.white),
+                              ),
+                            ),
+                        ],
+                      ),
+                      // Tabela de totais por canal — sempre visível
+                      const SizedBox(height: 10),
+                      const Divider(height: 1, color: Colors.white10),
+                      const SizedBox(height: 8),
+                      _AnalysisTable(stats: stats),
+                    ],
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 20),
 
             // Campo de texto
             Container(
@@ -500,37 +559,6 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
 
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 16),
-
-            // Botão Verificar Número
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: OutlinedButton.icon(
-                onPressed: _isCheckingPhone ? null : _verifyPhoneNumber,
-                icon: _isCheckingPhone
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.phone_in_talk_outlined),
-                label: Text(
-                    _isCheckingPhone
-                        ? 'Verificando...'
-                        : 'Verificar número (SIM Swap)',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.orangeAccent,
-                  side: const BorderSide(color: Colors.orangeAccent),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ),
-
             const SizedBox(height: 16),
 
             // Monitor de notificações
@@ -556,6 +584,21 @@ class _HomePageState extends State<HomePage> {
                             ? Colors.green
                             : Colors.orange,
                       ),
+                      if (_isNotificationEnabled) ...[
+                        const SizedBox(width: 6),
+                        AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (_, __) => Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.green
+                                  .withValues(alpha: _pulseAnimation.value),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
@@ -608,6 +651,21 @@ class _HomePageState extends State<HomePage> {
                             : Icons.sms_failed_outlined,
                         color: _isSmsEnabled ? Colors.green : Colors.orange,
                       ),
+                      if (_isSmsEnabled) ...[
+                        const SizedBox(width: 6),
+                        AnimatedBuilder(
+                          animation: _pulseAnimation,
+                          builder: (_, __) => Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.green
+                                  .withValues(alpha: _pulseAnimation.value),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
@@ -668,7 +726,16 @@ class _HomePageState extends State<HomePage> {
                         const SnackBar(
                             content: Text('Escaneando e-mails recentes...')),
                       );
-                      await GmailService().scanEmails();
+                      try {
+                        await GmailService().scanEmails();
+                      } catch (e) {
+                        debugPrint('[HomePage] scanEmails erro: $e');
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Não foi possível escanear e-mails agora.')),
+                          );
+                        }
+                      }
                     },
                     child: const Text('ESCANEAR'),
                   ),
@@ -706,6 +773,58 @@ class _DrawerItem extends StatelessWidget {
       onTap: onTap,
       horizontalTitleGap: 8,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+    );
+  }
+}
+
+class _AnalysisTable extends StatelessWidget {
+  final AnalysisStats stats;
+
+  const _AnalysisTable({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    const headerStyle = TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white54);
+    const labelStyle = TextStyle(fontSize: 12, color: Colors.white70);
+
+    Widget cell(String text, {Color color = Colors.white70}) => Expanded(
+          child: Text(text,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: color)),
+        );
+
+    Widget row(IconData icon, String label, int total, int sus) {
+      final ok = total - sus;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          children: [
+            Icon(icon, size: 13, color: Colors.white54),
+            const SizedBox(width: 4),
+            SizedBox(width: 70, child: Text(label, style: labelStyle)),
+            cell('$total'),
+            cell('$sus', color: sus > 0 ? Colors.orangeAccent : Colors.white38),
+            cell('$ok', color: ok > 0 ? Colors.greenAccent : Colors.white38),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            const SizedBox(width: 87),
+            Expanded(child: Text('Lidas', textAlign: TextAlign.center, style: headerStyle)),
+            Expanded(child: Text('Suspeitas', textAlign: TextAlign.center, style: headerStyle)),
+            Expanded(child: Text('OK', textAlign: TextAlign.center, style: headerStyle)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        row(Icons.sms_outlined, 'SMS', stats.smsTotal, stats.smsSuspicious),
+        row(Icons.chat_outlined, 'WhatsApp', stats.waTotal, stats.waSuspicious),
+        row(Icons.email_outlined, 'Gmail', stats.gmailTotal, stats.gmailSuspicious),
+      ],
     );
   }
 }

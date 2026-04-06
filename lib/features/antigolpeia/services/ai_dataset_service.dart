@@ -119,6 +119,7 @@ class AiDatasetService {
           .from(_supabaseTable)
           .select()
           .eq('user_confirmation', 1)
+          .eq('is_active', true)
           .order('created_at', ascending: false)
           .limit(500);
 
@@ -157,18 +158,17 @@ class AiDatasetService {
       return const SubmitResult(success: true, wasAlreadyKnown: true);
     }
 
-    // 2. Enviar para Supabase
+    // 2. Enviar para Supabase via RPC (agrega contadores corretamente)
     try {
-      await _supabase.from(_supabaseTable).upsert({
-        'pattern_hash': patternHash,
-        'content_pattern': sanitizedContent,
-        'input_type': report.inputType,
-        'ipqs_fraud_score': report.ipqsFraudScore,
-        'sim_swap_status': report.simSwapStatus,
-        'is_voip': report.isVoip,
-        'fraud_score_aggregate': report.ipqsFraudScore,
-        'user_confirmation': report.userConfirmation,
-      }, onConflict: 'pattern_hash');
+      await _supabase.rpc('upsert_fraud_pattern', params: {
+        'p_pattern_hash':      patternHash,
+        'p_content_pattern':   sanitizedContent,
+        'p_input_type':        report.inputType,
+        'p_ipqs_fraud_score':  report.ipqsFraudScore,
+        'p_sim_swap_status':   report.simSwapStatus,
+        'p_is_voip':           report.isVoip,
+        'p_user_confirmation': report.userConfirmation,
+      });
 
       // 3. Salvar no cache local se confirmado como golpe
       if (report.userConfirmation == 1) {
